@@ -39,6 +39,14 @@
   .badge-watch { background: #fff3cd; color: #856404; }
   .badge-risky { background: #fde8d0; color: #7b3a10; }
   .badge-avoid { background: #f8d7da; color: #721c24; }
+  details.guide { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.1); margin-bottom: 20px; }
+  details.guide summary { padding: 12px 20px; font-size: 0.85rem; font-weight: 600; cursor: pointer; user-select: none; color: #1a1a2e; list-style: none; display: flex; align-items: center; gap: 8px; }
+  details.guide summary::before { content: "▶"; font-size: 0.65rem; transition: transform 0.15s; }
+  details[open].guide summary::before { transform: rotate(90deg); }
+  details.guide summary:hover { background: #f0f4ff; border-radius: 8px; }
+  .guide-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px 24px; padding: 4px 20px 16px; }
+  .guide-item dt { font-size: 0.78rem; font-weight: 700; color: #1a1a2e; margin-bottom: 2px; }
+  .guide-item dd { font-size: 0.78rem; color: #555; margin: 0; line-height: 1.45; }
 </style>
 </head>
 <body>
@@ -50,6 +58,56 @@
 </div>
 <main>
   <div class="meta">Data as of: 2026-06-07 13:54 UTC &nbsp;|&nbsp; 342 candidates</div>
+
+  <details class="guide">
+    <summary>How to read this dashboard</summary>
+    <dl class="guide-grid">
+      <div class="guide-item">
+        <dt>Composite (0–100)</dt>
+        <dd>Overall rank combining return potential, company quality, and risk. Higher is better. Stocks rated AVOID are set to 0 regardless of other scores.</dd>
+      </div>
+      <div class="guide-item">
+        <dt>Quality</dt>
+        <dd>Company financial health. <strong>GREAT</strong> = strong fundamentals; <strong>GOOD</strong> = solid; <strong>OK</strong> = average; <strong>WEAK</strong> = concerns present.</dd>
+      </div>
+      <div class="guide-item">
+        <dt>Risk</dt>
+        <dd>Position risk tier. <strong>SAFE</strong> = low risk; <strong>WATCH</strong> = elevated volatility or trend weakness; <strong>RISKY</strong> = high beta or breakdown; <strong>AVOID</strong> = not suitable.</dd>
+      </div>
+      <div class="guide-item">
+        <dt>Ann Ret %</dt>
+        <dd>Estimated annualized income from the option premium if the stock stays above the strike at expiry. Higher means more income potential.</dd>
+      </div>
+      <div class="guide-item">
+        <dt>IV %</dt>
+        <dd>Implied Volatility — the market&#39;s expectation of price movement. Higher IV generates higher premiums but also signals greater uncertainty.</dd>
+      </div>
+      <div class="guide-item">
+        <dt>DTE</dt>
+        <dd>Days to Expiration — how many calendar days until the option contract expires.</dd>
+      </div>
+      <div class="guide-item">
+        <dt>Strike</dt>
+        <dd>The price at which you agree to buy 100 shares if assigned. The stock must stay above this level for the trade to expire worthlessly (desired outcome).</dd>
+      </div>
+      <div class="guide-item">
+        <dt>Days&#x2192;Earn</dt>
+        <dd>Days until the next earnings report. Negative means earnings already passed this cycle. Values near 0 mean imminent earnings — higher gap-risk.</dd>
+      </div>
+      <div class="guide-item">
+        <dt>Risk Flags</dt>
+        <dd><strong>CLEAR</strong> = no flags; <strong>HIGH_BETA</strong> = moves more than the broad market; <strong>BELOW_SMA50</strong> = price under 50-day average; <strong>EARNINGS_NEAR</strong> = earnings within ~3 weeks.</dd>
+      </div>
+      <div class="guide-item">
+        <dt>Dist 52W Hi %</dt>
+        <dd>How far the stock&#39;s current price is below its 52-week high. Higher % means the stock has pulled back more from its recent peak.</dd>
+      </div>
+      <div class="guide-item">
+        <dt>Note</dt>
+        <dd><strong>PASS</strong> = meets all screening criteria; <strong>LOW_RETURN</strong> = premium too low; <strong>LOW_IV</strong> = implied volatility below threshold.</dd>
+      </div>
+    </dl>
+  </details>
 
   <div class="filter-bar">
     <div>
