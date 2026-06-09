@@ -54,6 +54,11 @@
   .ctrl-select:hover { background-color: #e8eaf6; border-color: #3f51b5; }
   .ctrl-select:focus { outline: 2px solid #3f51b5; outline-offset: 1px; }
 
+  /* screen (row-filter) buttons — pill shape, frequent use → one-click */
+  .preset-btn { font-size: 0.73rem; padding: 3px 10px; border: 1px solid #ccc; border-radius: 14px; background: #fff; cursor: pointer; white-space: nowrap; }
+  .preset-btn:hover { background: #e8eaf6; border-color: #9fa8da; }
+  .preset-btn.preset-active { background: #1a1a2e; color: #fff; border-color: #1a1a2e; }
+
   /* reset button */
   .reset-btn { font-size: 0.73rem; padding: 4px 10px; border: 1px solid #e0c8b0; border-radius: 4px; background: #fff8f0; color: #8b4500; cursor: pointer; margin-left: auto; white-space: nowrap; }
   .reset-btn:hover { background: #ffecd6; }
@@ -167,7 +172,7 @@
 <header class="site-header">
   <div class="hrow">
     <h1>S&amp;P 500 Opportunity &amp; Risk Dashboard</h1>
-    <span class="hmeta">Last Updated: Jun 9, 2026 2:14 PM PT&nbsp;&nbsp;|&nbsp;&nbsp;<span id="row-count">344</span> stocks</span>
+    <span class="hmeta">Last Updated: Jun 9, 2026 2:25 PM PT&nbsp;&nbsp;|&nbsp;&nbsp;<span id="row-count">344</span> stocks</span>
   </div>
   <div class="hfoot">
     <span class="hdisclaim">&#9888; Research only. Not financial advice.</span>
@@ -252,14 +257,12 @@
     </select>
     <span class="ctrl-sep"></span>
     <span class="ctrl-label">Screen:</span>
-    <select id="screen-select" class="ctrl-select" onchange="preset(this.value)">
-      <option value="all" selected>All Stocks</option>
-      <option value="top">Top Opportunities</option>
-      <option value="quality">Quality Leaders</option>
-      <option value="safe">Safe Candidates</option>
-      <option value="watchlist">Watchlist</option>
-      <option value="avoid">Avoid</option>
-    </select>
+    <button class="preset-btn preset-active" id="preset-all"       onclick="preset('all')">All Stocks</button>
+    <button class="preset-btn"               id="preset-top"       onclick="preset('top')">Top Opportunities</button>
+    <button class="preset-btn"               id="preset-quality"   onclick="preset('quality')">Quality Leaders</button>
+    <button class="preset-btn"               id="preset-safe"      onclick="preset('safe')">Safe Candidates</button>
+    <button class="preset-btn"               id="preset-watchlist" onclick="preset('watchlist')">Watchlist</button>
+    <button class="preset-btn"               id="preset-avoid"     onclick="preset('avoid')">Avoid</button>
     <span class="ctrl-sep"></span>
     <button class="reset-btn" onclick="resetAll()">&#10006; Reset All</button>
   </div>
@@ -7783,8 +7786,11 @@
     }
 
     applyFilters();
-    var sel = document.getElementById('screen-select');
-    if (sel) sel.value = name;
+    Array.from(document.querySelectorAll('.preset-btn')).forEach(function(b) {
+      b.classList.remove('preset-active');
+    });
+    var pbtn = document.getElementById('preset-' + name);
+    if (pbtn) pbtn.classList.add('preset-active');
   };
 
   // ---- Column Layout views ----
@@ -7826,8 +7832,10 @@
     window.setView('default');
     sortCol = 4; sortAsc = false; doSort();
     applyFilters();
-    var sel = document.getElementById('screen-select');
-    if (sel) sel.value = 'all';
+    Array.from(document.querySelectorAll('.preset-btn')).forEach(function(b) {
+      b.classList.remove('preset-active');
+    });
+    document.getElementById('preset-all').classList.add('preset-active');
   };
 
   // ---- synchronized column resize ----
