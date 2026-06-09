@@ -8,15 +8,18 @@
   *, *::before, *::after { box-sizing: border-box; }
   body { font-family: sans-serif; margin: 0; padding: 0; background: #f5f5f5; color: #222; }
 
-  /* ---- compact header ---- */
+  /* ---- header ---- */
   .site-header { background: #1a1a2e; color: #fff; padding: 10px 24px 0; }
-  .hrow { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .hrow { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 4px; }
   .hrow h1 { margin: 0; font-size: 1.1rem; white-space: nowrap; }
   .hmeta { font-size: 0.8rem; color: rgba(255,255,255,.65); white-space: nowrap; }
-  .hdisclaim { font-size: 0.72rem; color: rgba(255,255,255,.45); padding: 4px 0 8px; }
-  details.guide { border-top: 1px solid rgba(255,255,255,.12); }
-  details.guide summary { padding: 7px 0; font-size: 0.8rem; font-weight: 600; cursor: pointer; user-select: none; color: rgba(255,255,255,.75); list-style: none; display: flex; align-items: center; gap: 6px; }
-  details.guide summary::before { content: "▶"; font-size: 0.6rem; transition: transform 0.15s; }
+
+  /* ---- compact footer row: disclaimer + collapsible guide inline ---- */
+  .hfoot { display: flex; align-items: baseline; gap: 20px; padding: 4px 0 0; border-top: 1px solid rgba(255,255,255,.12); flex-wrap: wrap; }
+  .hdisclaim { font-size: 0.72rem; color: rgba(255,255,255,.45); white-space: nowrap; flex-shrink: 0; }
+  details.guide { border-top: none; flex: 1; min-width: 0; }
+  details.guide summary { padding: 4px 0 6px; font-size: 0.72rem; font-weight: 600; cursor: pointer; user-select: none; color: rgba(255,255,255,.6); list-style: none; display: inline-flex; align-items: center; gap: 5px; }
+  details.guide summary::before { content: "▶"; font-size: 0.58rem; transition: transform 0.15s; }
   details[open].guide summary::before { transform: rotate(90deg); }
   details.guide summary:hover { color: #fff; }
   .guide-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px 24px; padding: 4px 0 12px; }
@@ -24,26 +27,47 @@
   .guide-item dd { font-size: 0.76rem; color: rgba(255,255,255,.5); margin: 0; line-height: 1.4; }
 
   /* ---- main ---- */
-  main { padding: 16px 24px; }
+  main { padding: 14px 24px; }
 
-  /* ---- preset toolbar ---- */
-  .preset-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
-  .preset-label { font-size: 0.78rem; color: #555; white-space: nowrap; font-weight: 600; }
-  .preset-btn { font-size: 0.78rem; padding: 4px 12px; border: 1px solid #ccc; border-radius: 16px; background: #fff; cursor: pointer; white-space: nowrap; }
-  .preset-btn:hover { background: #e8eaf6; border-color: #9fa8da; }
-  .preset-btn.preset-active { background: #1a1a2e; color: #fff; border-color: #1a1a2e; }
-  .preset-min { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: #555; margin-left: auto; }
-  .preset-min input { width: 70px; font-size: 0.78rem; padding: 3px 7px; border: 1px solid #ccc; border-radius: 4px; }
+  /* ---- combined control bar ---- */
+  .ctrl-bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+  .ctrl-label { font-size: 0.7rem; color: #777; font-weight: 700; white-space: nowrap; text-transform: uppercase; letter-spacing: 0.04em; }
+  .ctrl-sep { width: 1px; height: 16px; background: #d4d4d4; margin: 0 4px; align-self: center; flex-shrink: 0; }
 
-  /* ---- table wrapper: overflow:clip keeps border-radius without breaking sticky ---- */
+  /* ---- dropdowns ---- */
+  .ctrl-select {
+    font-size: 0.78rem;
+    padding: 4px 26px 4px 9px;
+    border: 1px solid #9fa8da;
+    border-radius: 4px;
+    background-color: #f8f9ff;
+    color: #1a1a2e;
+    cursor: pointer;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%231a1a2e'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 8px 5px;
+  }
+  .ctrl-select:hover { background-color: #e8eaf6; border-color: #3f51b5; }
+  .ctrl-select:focus { outline: 2px solid #3f51b5; outline-offset: 1px; }
+
+  /* reset button */
+  .reset-btn { font-size: 0.73rem; padding: 4px 10px; border: 1px solid #e0c8b0; border-radius: 4px; background: #fff8f0; color: #8b4500; cursor: pointer; margin-left: auto; white-space: nowrap; }
+  .reset-btn:hover { background: #ffecd6; }
+
+  /* ---- table wrapper ---- */
   .table-wrap { overflow: clip; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.1); }
   table { border-collapse: collapse; width: 100%; background: #fff; }
 
-  /* ---- sticky column headers ---- */
+  /* ---- sticky headers ---- */
   thead th {
     position: sticky; top: 0; z-index: 20;
     background: #1a1a2e; color: #fff;
     padding: 9px 10px; text-align: left; font-size: 0.78rem; white-space: nowrap;
+    overflow: hidden;
   }
   th.sortable { cursor: pointer; user-select: none; }
   th.sortable:hover { background: #2d2d50; }
@@ -51,10 +75,9 @@
   th.sorted-desc::after { content: " ▼"; }
 
   /* ---- column group separators ---- */
-  th.grp-sep, td.grp-sep { border-left: 2px solid rgba(255,255,255,.15); }
-  td.grp-sep { border-left: 2px solid #e0e4f0; }
+  th.grp-sep { border-left: 2px solid rgba(255,255,255,.15); }
 
-  /* ---- inline filter button (▼) in column headers ---- */
+  /* ---- filter/score button in column headers ---- */
   .filter-btn {
     background: transparent; border: none; color: rgba(255,255,255,.45);
     font-size: 0.62rem; cursor: pointer; padding: 0 0 0 5px;
@@ -62,6 +85,13 @@
   }
   .filter-btn:hover { color: #fff; }
   .filter-btn.filter-active { color: #ffc107; }
+
+  /* ---- column resize handle ---- */
+  .col-resize {
+    position: absolute; right: 0; top: 0; bottom: 0; width: 5px;
+    cursor: col-resize; background: transparent; z-index: 1;
+  }
+  .col-resize:hover { background: rgba(255,255,255,.25); }
 
   /* ---- floating multi-select filter popup ---- */
   .filter-popup {
@@ -82,8 +112,24 @@
   .fp-items label:hover { color: #1a1a2e; font-weight: 600; }
   .fp-items input[type="checkbox"] { cursor: pointer; flex-shrink: 0; }
 
+  /* ---- min-score popup (opportunity score column) ---- */
+  .score-popup {
+    position: fixed; background: #fff; border: 1px solid #ccc;
+    border-radius: 6px; box-shadow: 0 4px 14px rgba(0,0,0,.18);
+    z-index: 500; padding: 12px 14px; min-width: 180px;
+  }
+  .score-popup.hidden { display: none; }
+  .score-popup label { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: #333; }
+  .score-popup input { width: 70px; font-size: 0.82rem; padding: 3px 7px; border: 1px solid #ccc; border-radius: 3px; }
+  .sp-btns { display: flex; gap: 6px; margin-top: 9px; }
+  .sp-btns button {
+    flex: 1; font-size: 0.75rem; padding: 4px 8px;
+    border: 1px solid #ccc; border-radius: 3px; cursor: pointer; background: #f5f5f5;
+  }
+  .sp-btns button:hover { background: #e0e0e0; }
+
   /* ---- data rows ---- */
-  td { padding: 6px 10px; font-size: 0.8rem; border-bottom: 1px solid #eee; white-space: nowrap; }
+  td { padding: 6px 10px; font-size: 0.8rem; border-bottom: 1px solid #eee; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: #f0f4ff; }
   tr.hidden { display: none; }
@@ -105,14 +151,7 @@
   .rsi-healthy  { color: #155724; }
   .rsi-extended { color: #e65c00; font-weight: 700; }
 
-  /* ---- view switcher ---- */
-  .view-bar { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
-  .view-label { font-size: 0.75rem; color: #555; font-weight: 600; white-space: nowrap; }
-  .view-btn { font-size: 0.73rem; padding: 3px 10px; border: 1px solid #9fa8da; border-radius: 4px; background: #f8f9ff; cursor: pointer; white-space: nowrap; }
-  .view-btn:hover { background: #e8eaf6; }
-  .view-btn.view-active { background: #3f51b5; color: #fff; border-color: #3f51b5; }
-
-  /* ---- badges (high-contrast, visually distinct) ---- */
+  /* ---- badges ---- */
   .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 700; }
   .badge-great { background: #1a6b3c; color: #fff; }
   .badge-good  { background: #28a745; color: #fff; }
@@ -128,130 +167,136 @@
 <header class="site-header">
   <div class="hrow">
     <h1>S&amp;P 500 Opportunity &amp; Risk Dashboard</h1>
-    <span class="hmeta">
-      Data as of: 2026-06-09 07:15 UTC&nbsp;&nbsp;|&nbsp;&nbsp;Generated: 2026-06-09 18:59 UTC&nbsp;&nbsp;|&nbsp;&nbsp;<span id="row-count">344</span> stocks
-    </span>
+    <span class="hmeta">Last Updated: Jun 9, 2026 2:14 PM PT&nbsp;&nbsp;|&nbsp;&nbsp;<span id="row-count">344</span> stocks</span>
   </div>
-  <div class="hdisclaim">&#9888; For research and discussion only. Not financial advice.</div>
-  <details class="guide">
-    <summary>How to read this dashboard</summary>
-    <dl class="guide-grid">
-      <div class="guide-item">
-        <dt>Opportunity Score (0–100)</dt>
-        <dd>A single score that combines financial quality, price momentum, and risk to rank how attractive each stock looks today. 70+ is strong; below 40 is generally not worth pursuing. Stocks flagged as high-risk automatically score 0.</dd>
-      </div>
-      <div class="guide-item">
-        <dt>Quality</dt>
-        <dd>How financially healthy the company is, based on earnings, profit margins, debt, and growth. <strong>GREAT</strong> = strong fundamentals; <strong>GOOD</strong> = solid; <strong>OK</strong> = average; <strong>WEAK</strong> = concerns that could amplify downside.</dd>
-      </div>
-      <div class="guide-item">
-        <dt>EPS Growth %</dt>
-        <dd>Year-over-year change in earnings per share. Green = growing profits; red = declining. One bad year doesn't define a company — look alongside Quality and the long-term trend.</dd>
-      </div>
-      <div class="guide-item">
-        <dt>Revenue Growth %</dt>
-        <dd>Year-over-year change in total revenue. Sustained growth signals healthy business expansion. Declining revenue (red) suggests the business is shrinking or under pricing pressure.</dd>
-      </div>
-      <div class="guide-item">
-        <dt>ROE %</dt>
-        <dd>Return on Equity — how much profit the company generates per dollar of shareholder equity. Higher is generally better. Values above 100% can occur when share buybacks reduce the equity base; interpret in sector context.</dd>
-      </div>
-      <div class="guide-item">
-        <dt>Debt / Equity</dt>
-        <dd>Total debt relative to shareholder equity. Lower means less financial leverage. High ratios are normal in some sectors (financials, utilities) but can signal meaningful risk elsewhere, especially if earnings are declining.</dd>
-      </div>
-      <div class="guide-item">
-        <dt>Forward P/E</dt>
-        <dd>Stock price relative to expected next-year earnings. A lower number can indicate the stock is cheaper relative to its expected profit. Very high values suggest growth expectations are priced in. Negative values mean the company is expected to report a loss.</dd>
-      </div>
-      <div class="guide-item">
-        <dt>TrendScore (0–100)</dt>
-        <dd>How strong the stock's current price momentum is. 70+ means it is in a healthy uptrend and trading above its key moving averages. Below 40 suggests weakness or a downtrend.</dd>
-      </div>
-      <div class="guide-item">
-        <dt>RSI (14)</dt>
-        <dd>Short-term momentum indicator — not a measure of company quality. Helps identify potentially overbought or oversold conditions. <strong style="color:#0a4fa8">Under 30 = Oversold</strong> (contrarian watch); <strong style="color:#856404">30–50 = Weak</strong>; <strong style="color:#155724">50–70 = Healthy</strong>; <strong style="color:#e65c00">Over 70 = Extended</strong> (proceed carefully).</dd>
-      </div>
-      <div class="guide-item">
-        <dt>Stock 1M %</dt>
-        <dd>How much the stock price changed over the past month. Green = gained; red = fell. Context matters — a drop in a strong stock may be a buying opportunity; a drop in a weak stock may signal further decline.</dd>
-      </div>
-      <div class="guide-item">
-        <dt>vs S&amp;P 500 1M</dt>
-        <dd>How this stock performed compared to the S&amp;P 500 index over the past month. Positive (green) means it outperformed the index; negative (red) means it lagged.</dd>
-      </div>
-      <div class="guide-item">
-        <dt>Below 52W High</dt>
-        <dd>How far the current price is below its 52-week high. 0–10% means the stock is near its peak. A larger pullback can mean opportunity — or that something is wrong. Best interpreted alongside Quality and Risk.</dd>
-      </div>
-      <div class="guide-item">
-        <dt>Risk</dt>
-        <dd>The current risk level for this stock. <strong>SAFE</strong> = stable, healthy trend; <strong>WATCH</strong> = some elevated risk, proceed carefully; <strong>RISKY</strong> = high volatility or technical breakdown; <strong>AVOID</strong> = not suitable right now.</dd>
-      </div>
-      <div class="guide-item">
-        <dt>Earnings In</dt>
-        <dd>Days until the next earnings report. Stocks with earnings due soon carry higher short-term risk. Negative values mean earnings already passed this cycle.</dd>
-      </div>
-      <div class="guide-item">
-        <dt>Risk Flags</dt>
-        <dd><strong>CLEAR</strong> = no active flags. <strong>HIGH_BETA</strong> = moves sharply with the market; <strong>BELOW_SMA50</strong> = below 50-day average; <strong>EARNINGS_NEAR</strong> = report within ~3 weeks; <strong>LOW_QUALITY</strong> = weak fundamentals.</dd>
-      </div>
-    </dl>
-  </details>
+  <div class="hfoot">
+    <span class="hdisclaim">&#9888; Research only. Not financial advice.</span>
+    <details class="guide">
+      <summary>ⓘ How to Read</summary>
+      <dl class="guide-grid">
+        <div class="guide-item">
+          <dt>Opportunity Score (0–100)</dt>
+          <dd>A single score that combines financial quality, price momentum, and risk to rank how attractive each stock looks today. 70+ is strong; below 40 is generally not worth pursuing. Stocks flagged as high-risk automatically score 0.</dd>
+        </div>
+        <div class="guide-item">
+          <dt>Quality</dt>
+          <dd>How financially healthy the company is, based on earnings, profit margins, debt, and growth. <strong>GREAT</strong> = strong fundamentals; <strong>GOOD</strong> = solid; <strong>OK</strong> = average; <strong>WEAK</strong> = concerns that could amplify downside.</dd>
+        </div>
+        <div class="guide-item">
+          <dt>EPS Growth %</dt>
+          <dd>Year-over-year change in earnings per share. Green = growing profits; red = declining. One bad year doesn't define a company — look alongside Quality and the long-term trend.</dd>
+        </div>
+        <div class="guide-item">
+          <dt>Revenue Growth %</dt>
+          <dd>Year-over-year change in total revenue. Sustained growth signals healthy business expansion. Declining revenue (red) suggests the business is shrinking or under pricing pressure.</dd>
+        </div>
+        <div class="guide-item">
+          <dt>ROE %</dt>
+          <dd>Return on Equity — how much profit the company generates per dollar of shareholder equity. Higher is generally better. Values above 100% can occur when share buybacks reduce the equity base; interpret in sector context.</dd>
+        </div>
+        <div class="guide-item">
+          <dt>Debt / Equity</dt>
+          <dd>Total debt relative to shareholder equity. Lower means less financial leverage. High ratios are normal in some sectors (financials, utilities) but can signal meaningful risk elsewhere, especially if earnings are declining.</dd>
+        </div>
+        <div class="guide-item">
+          <dt>Forward P/E</dt>
+          <dd>Stock price relative to expected next-year earnings. A lower number can indicate the stock is cheaper relative to its expected profit. Very high values suggest growth expectations are priced in. Negative values mean the company is expected to report a loss.</dd>
+        </div>
+        <div class="guide-item">
+          <dt>TrendScore (0–100)</dt>
+          <dd>How strong the stock's current price momentum is. 70+ means it is in a healthy uptrend and trading above its key moving averages. Below 40 suggests weakness or a downtrend.</dd>
+        </div>
+        <div class="guide-item">
+          <dt>RSI (14)</dt>
+          <dd>Short-term momentum indicator — not a measure of company quality. Helps identify potentially overbought or oversold conditions. <strong style="color:#0a4fa8">Under 30 = Oversold</strong>; <strong style="color:#856404">30–50 = Weak</strong>; <strong style="color:#155724">50–70 = Healthy</strong>; <strong style="color:#e65c00">Over 70 = Extended</strong>.</dd>
+        </div>
+        <div class="guide-item">
+          <dt>Stock 1M %</dt>
+          <dd>How much the stock price changed over the past month. Green = gained; red = fell. Context matters — a drop in a strong stock may be a buying opportunity; a drop in a weak stock may signal further decline.</dd>
+        </div>
+        <div class="guide-item">
+          <dt>vs S&amp;P 500 1M</dt>
+          <dd>How this stock performed compared to the S&amp;P 500 index over the past month. Positive (green) means it outperformed the index; negative (red) means it lagged.</dd>
+        </div>
+        <div class="guide-item">
+          <dt>Below 52W High</dt>
+          <dd>How far the current price is below its 52-week high. 0–10% means the stock is near its peak. A larger pullback can mean opportunity — or that something is wrong. Best interpreted alongside Quality and Risk.</dd>
+        </div>
+        <div class="guide-item">
+          <dt>Risk</dt>
+          <dd>The current risk level for this stock. <strong>SAFE</strong> = stable, healthy trend; <strong>WATCH</strong> = some elevated risk, proceed carefully; <strong>RISKY</strong> = high volatility or technical breakdown; <strong>AVOID</strong> = not suitable right now.</dd>
+        </div>
+        <div class="guide-item">
+          <dt>Earnings In</dt>
+          <dd>Days until the next earnings report. Stocks with earnings due soon carry higher short-term risk. Negative values mean earnings already passed this cycle.</dd>
+        </div>
+        <div class="guide-item">
+          <dt>Risk Flags</dt>
+          <dd><strong>CLEAR</strong> = no active flags. <strong>HIGH_BETA</strong> = moves sharply with the market; <strong>BELOW_SMA50</strong> = below 50-day average; <strong>EARNINGS_NEAR</strong> = report within ~3 weeks; <strong>LOW_QUALITY</strong> = weak fundamentals.</dd>
+        </div>
+      </dl>
+    </details>
+  </div>
 </header>
 <main>
 
-  <!-- View switcher -->
-  <div class="view-bar">
-    <span class="view-label">View:</span>
-    <button class="view-btn view-active" id="vbtn-default" onclick="setView('default')">Default</button>
-    <button class="view-btn"             id="vbtn-fund"    onclick="setView('fund')">Fundamentals</button>
-    <button class="view-btn"             id="vbtn-tech"    onclick="setView('tech')">Technical</button>
-    <button class="view-btn"             id="vbtn-risk"    onclick="setView('risk')">Risk</button>
-    <button class="view-btn"             id="vbtn-all"     onclick="setView('all')">All Columns</button>
-  </div>
-
-  <!-- Preset toolbar -->
-  <div class="preset-bar">
-    <span class="preset-label">Quick view:</span>
-    <button class="preset-btn preset-active" id="preset-all"       onclick="preset('all')">All</button>
-    <button class="preset-btn"               id="preset-top"       onclick="preset('top')">Top Opportunities</button>
-    <button class="preset-btn"               id="preset-quality"   onclick="preset('quality')">Quality Leaders</button>
-    <button class="preset-btn"               id="preset-safe"      onclick="preset('safe')">Safe Candidates</button>
-    <button class="preset-btn"               id="preset-watchlist" onclick="preset('watchlist')">Watchlist</button>
-    <button class="preset-btn"               id="preset-avoid"     onclick="preset('avoid')">Avoid</button>
-    <span class="preset-min">
-      Min Score:&nbsp;<input type="number" id="f-composite" placeholder="0" min="0" max="100" step="1" oninput="applyFilters()">
-    </span>
+  <!-- Compact control bar: Layout dropdown + Screen dropdown + Reset All -->
+  <div class="ctrl-bar">
+    <span class="ctrl-label">Layout:</span>
+    <select id="layout-select" class="ctrl-select" onchange="setView(this.value)">
+      <option value="default" selected>Default</option>
+      <option value="fund">Fundamentals</option>
+      <option value="tech">Technical</option>
+      <option value="risk">Risk</option>
+      <option value="all">All</option>
+    </select>
+    <span class="ctrl-sep"></span>
+    <span class="ctrl-label">Screen:</span>
+    <select id="screen-select" class="ctrl-select" onchange="preset(this.value)">
+      <option value="all" selected>All Stocks</option>
+      <option value="top">Top Opportunities</option>
+      <option value="quality">Quality Leaders</option>
+      <option value="safe">Safe Candidates</option>
+      <option value="watchlist">Watchlist</option>
+      <option value="avoid">Avoid</option>
+    </select>
+    <span class="ctrl-sep"></span>
+    <button class="reset-btn" onclick="resetAll()">&#10006; Reset All</button>
   </div>
 
   <div class="table-wrap">
     <table id="candidates-table">
+      <colgroup>
+        <col id="col-0"><col id="col-1"><col id="col-2"><col id="col-3"><col id="col-4">
+        <col id="col-5"><col id="col-6"><col id="col-7"><col id="col-8"><col id="col-9">
+        <col id="col-10"><col id="col-11"><col id="col-12"><col id="col-13"><col id="col-14">
+        <col id="col-15"><col id="col-16"><col id="col-17"><col id="col-18">
+      </colgroup>
       <thead>
         <tr>
           <!-- Company -->
-          <th class="sortable"          onclick="sortTable(0)">Ticker</th>
-          <th class="sortable"          onclick="sortTable(1)">Company</th>
-          <th class="sortable"          onclick="sortTable(2)">Sector <button class="filter-btn" id="fbtn-sector"  onclick="openFilter('sector',this);event.stopPropagation();" title="Filter Sector">&#x25BC;</button></th>
-          <th class="sortable"          onclick="sortTable(3)">Price</th>
-          <th class="sortable"          onclick="sortTable(4)">Opportunity Score</th>
+          <th class="sortable" onclick="sortTable(0)">Ticker</th>
+          <th class="sortable" onclick="sortTable(1)">Company</th>
+          <th class="sortable" onclick="sortTable(2)">Sector <button class="filter-btn" id="fbtn-sector" onclick="openFilter('sector',this);event.stopPropagation();" title="Filter by sector">&#x25BC;</button></th>
+          <th class="sortable" onclick="sortTable(3)">Price</th>
+          <th class="sortable" onclick="sortTable(4)">Opportunity Score <button class="filter-btn" id="fbtn-score" onclick="openScoreFilter(this);event.stopPropagation();" title="Filter by minimum score">&#x25BC;</button></th>
           <!-- Fundamentals -->
-          <th class="sortable grp-sep"  onclick="sortTable(5)">Quality <button class="filter-btn" id="fbtn-quality" onclick="openFilter('quality',this);event.stopPropagation();" title="Filter Quality">&#x25BC;</button></th>
-          <th class="sortable"          onclick="sortTable(6)">EPS Growth %</th>
-          <th class="sortable"          onclick="sortTable(7)">Rev Growth %</th>
-          <th class="sortable"          onclick="sortTable(8)">ROE %</th>
-          <th class="sortable"          onclick="sortTable(9)">Debt / Equity</th>
-          <th class="sortable"          onclick="sortTable(10)">Forward P/E</th>
+          <th class="sortable grp-sep" onclick="sortTable(5)">Quality <button class="filter-btn" id="fbtn-quality" onclick="openFilter('quality',this);event.stopPropagation();" title="Filter by quality">&#x25BC;</button></th>
+          <th class="sortable" onclick="sortTable(6)">EPS Growth %</th>
+          <th class="sortable" onclick="sortTable(7)">Rev Growth %</th>
+          <th class="sortable" onclick="sortTable(8)">ROE %</th>
+          <th class="sortable" onclick="sortTable(9)">Debt / Equity</th>
+          <th class="sortable" onclick="sortTable(10)">Forward P/E</th>
           <!-- Technicals -->
-          <th class="sortable grp-sep"  onclick="sortTable(11)">TrendScore</th>
-          <th class="sortable"          onclick="sortTable(12)" title="RSI is a short-term momentum indicator. It helps identify potentially overbought or oversold conditions. It is not a measure of company quality.">RSI (14)</th>
-          <th class="sortable"          onclick="sortTable(13)">Stock 1M %</th>
-          <th class="sortable"          onclick="sortTable(14)">vs S&amp;P 500 1M</th>
-          <th class="sortable"          onclick="sortTable(15)">Below 52W High</th>
+          <th class="sortable grp-sep" onclick="sortTable(11)">TrendScore</th>
+          <th class="sortable" onclick="sortTable(12)" title="RSI is a short-term momentum indicator. Not a measure of company quality.">RSI (14)</th>
+          <th class="sortable" onclick="sortTable(13)">Stock 1M %</th>
+          <th class="sortable" onclick="sortTable(14)">vs S&amp;P 500 1M</th>
+          <th class="sortable" onclick="sortTable(15)">Below 52W High</th>
           <!-- Risk -->
-          <th class="sortable grp-sep"  onclick="sortTable(16)">Risk <button class="filter-btn" id="fbtn-risk" onclick="openFilter('risk',this);event.stopPropagation();" title="Filter Risk">&#x25BC;</button></th>
-          <th class="sortable"          onclick="sortTable(17)">Earnings In</th>
-          <th class="sortable"          onclick="sortTable(18)">Risk Flags <button class="filter-btn" id="fbtn-flags" onclick="openFilter('flags',this);event.stopPropagation();" title="Filter Risk Flags">&#x25BC;</button></th>
+          <th class="sortable grp-sep" onclick="sortTable(16)">Risk <button class="filter-btn" id="fbtn-risk" onclick="openFilter('risk',this);event.stopPropagation();" title="Filter by risk tier">&#x25BC;</button></th>
+          <th class="sortable" onclick="sortTable(17)">Earnings In</th>
+          <th class="sortable" onclick="sortTable(18)">Risk Flags <button class="filter-btn" id="fbtn-flags" onclick="openFilter('flags',this);event.stopPropagation();" title="Filter by risk flags">&#x25BC;</button></th>
         </tr>
       </thead>
       <tbody>
@@ -7484,7 +7529,7 @@
   </div>
 </main>
 
-<!-- Floating multi-select filter popup (appended to body, position:fixed avoids overflow clipping) -->
+<!-- Multi-select filter popup -->
 <div id="filter-popup" class="filter-popup hidden">
   <div class="fp-header">
     <button id="fp-all">Select All</button>
@@ -7493,14 +7538,24 @@
   <div id="fp-items" class="fp-items"></div>
 </div>
 
+<!-- Min-score popup (Opportunity Score column) — filters live on oninput; Close dismisses -->
+<div id="score-popup" class="score-popup hidden">
+  <label>Min Score&nbsp;<input type="number" id="f-composite" min="0" max="100" step="1" placeholder="0" oninput="applyFilters(); updateScoreBtn()"></label>
+  <div class="sp-btns">
+    <button onclick="clearScoreFilter()">Clear</button>
+  </div>
+</div>
+
 <script>
 (function() {
-  var sortCol = 4, sortAsc = false;
+  var tableEl  = document.getElementById('candidates-table');
+  var sortCol  = 4, sortAsc = false;
+  var colWidths = []; // tracks current pixel width of each column (set at init + on resize)
+  var cols      = Array.from(tableEl.querySelectorAll('colgroup col'));
 
   var QUALITY_ORDER = {GREAT:0, GOOD:1, OK:2, WEAK:3};
   var RISK_ORDER    = {SAFE:0, WATCH:1, RISKY:2, AVOID:3};
   var FLAGS_ORDER   = {CLEAR:0, HIGH_BETA:1, BELOW_SMA50:2, BELOW_SMA200:3, EARNINGS_NEAR:4, LOW_QUALITY:5};
-  // cols 3,4,6-15,17 are numeric; 5=Quality custom; 16=Risk custom; 18=Flags custom
   var NUMERIC_COLS  = {3:1, 4:1, 6:1, 7:1, 8:1, 9:1, 10:1, 11:1, 12:1, 13:1, 14:1, 15:1, 17:1};
 
   var FILTER_META = {
@@ -7513,8 +7568,9 @@
   var filterState = { sector: [], quality: [], risk: [], flags: [] };
   var activeFKey  = null;
   var popup       = document.getElementById('filter-popup');
+  var scorePopup  = document.getElementById('score-popup');
 
-  // ---- sort helpers ----
+  // ---- sort ----
   function getSortVal(row, col) {
     var text = row.cells[col].textContent.trim();
     if (col === 5)  { var qo = QUALITY_ORDER[text]; return qo !== undefined ? qo : 99; }
@@ -7535,9 +7591,8 @@
   }
 
   function doSort() {
-    var table = document.getElementById('candidates-table');
-    var tbody = table.querySelector('tbody');
-    var ths   = Array.from(table.querySelectorAll('thead tr:first-child th'));
+    var tbody = tableEl.querySelector('tbody');
+    var ths   = Array.from(tableEl.querySelectorAll('thead tr:first-child th'));
     var rows  = Array.from(tbody.querySelectorAll('tr'));
     ths.forEach(function(th) { th.classList.remove('sorted-asc', 'sorted-desc'); });
     ths[sortCol].classList.add(sortAsc ? 'sorted-asc' : 'sorted-desc');
@@ -7558,17 +7613,23 @@
   // ---- row count ----
   function updateCount() {
     var visible = Array.from(
-      document.querySelector('#candidates-table tbody').querySelectorAll('tr')
+      tableEl.querySelector('tbody').querySelectorAll('tr')
     ).filter(function(r) { return !r.classList.contains('hidden'); }).length;
     document.getElementById('row-count').textContent = visible;
   }
 
-  // ---- filter badge on column header button ----
+  // ---- filter badge helpers ----
   function updateFilterBadges() {
     ['sector','quality','risk','flags'].forEach(function(fKey) {
       var btn = document.getElementById('fbtn-' + fKey);
       if (btn) btn.classList.toggle('filter-active', filterState[fKey].length > 0);
     });
+  }
+
+  function updateScoreBtn() {
+    var val  = document.getElementById('f-composite').value;
+    var fbtn = document.getElementById('fbtn-score');
+    if (fbtn) fbtn.classList.toggle('filter-active', val !== '' && parseFloat(val) > 0);
   }
 
   // ---- apply filters ----
@@ -7583,7 +7644,7 @@
   window.applyFilters = function() {
     var minC = parseFloat(document.getElementById('f-composite').value);
     if (isNaN(minC)) minC = 0;
-    var tbody = document.querySelector('#candidates-table tbody');
+    var tbody = tableEl.querySelector('tbody');
     Array.from(tbody.querySelectorAll('tr')).forEach(function(row) {
       var show =
         (filterState.sector.length  === 0 || filterState.sector.indexOf(row.dataset.sector)   !== -1) &&
@@ -7595,13 +7656,14 @@
     });
     updateCount();
     updateFilterBadges();
+    updateScoreBtn();
   };
 
-  // ---- filter popup ----
+  // ---- multi-select filter popup ----
   function getDistinctVals(fKey) {
-    var meta = FILTER_META[fKey];
-    var tbody = document.querySelector('#candidates-table tbody');
-    var seen = {};
+    var meta  = FILTER_META[fKey];
+    var tbody = tableEl.querySelector('tbody');
+    var seen  = {};
     Array.from(tbody.querySelectorAll('tr')).forEach(function(row) {
       var v = row.dataset[meta.dataKey] || '';
       if (meta.multi) {
@@ -7655,6 +7717,7 @@
   }
 
   window.openFilter = function(fKey, btn) {
+    scorePopup.classList.add('hidden');
     if (activeFKey === fKey) { closeFilter(); return; }
     activeFKey = fKey;
     renderPopup(fKey);
@@ -7669,19 +7732,43 @@
     popup.classList.add('hidden');
   }
 
+  // ---- min-score popup ----
+  window.openScoreFilter = function(btn) {
+    closeFilter();
+    if (!scorePopup.classList.contains('hidden')) { scorePopup.classList.add('hidden'); return; }
+    var rect = btn.getBoundingClientRect();
+    scorePopup.style.left = Math.min(rect.left, window.innerWidth - 200) + 'px';
+    scorePopup.style.top  = (rect.bottom + 3) + 'px';
+    scorePopup.classList.remove('hidden');
+    document.getElementById('f-composite').focus();
+  };
+
+  window.clearScoreFilter = function() {
+    document.getElementById('f-composite').value = '';
+    scorePopup.classList.add('hidden');
+    applyFilters();
+  };
+
+  // close popups on outside click
   document.addEventListener('click', function(e) {
     if (!popup.classList.contains('hidden') &&
         !popup.contains(e.target) &&
         !e.target.classList.contains('filter-btn')) {
       closeFilter();
     }
+    if (!scorePopup.classList.contains('hidden') &&
+        !scorePopup.contains(e.target) &&
+        !e.target.classList.contains('filter-btn')) {
+      scorePopup.classList.add('hidden');
+    }
   });
 
-  // ---- preset views ----
+  // ---- Screen (row-filter presets) ----
   window.preset = function(name) {
     filterState = { sector: [], quality: [], risk: [], flags: [] };
     document.getElementById('f-composite').value = '';
     closeFilter();
+    scorePopup.classList.add('hidden');
 
     if (name === 'top') {
       sortCol = 4; sortAsc = false; doSort();
@@ -7696,16 +7783,15 @@
     }
 
     applyFilters();
-    Array.from(document.querySelectorAll('.preset-btn')).forEach(function(b) {
-      b.classList.remove('preset-active');
-    });
-    document.getElementById('preset-' + name).classList.add('preset-active');
+    var sel = document.getElementById('screen-select');
+    if (sel) sel.value = name;
   };
 
-  // ---- column visibility views ----
+  // ---- Column Layout views ----
+  // Default: Ticker, Company, Sector, Price, OppScore, Quality, TrendScore, Risk, EarningsIn, RiskFlags
   var ALL_COLS  = [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18];
   var VIEW_DEFS = {
-    'default': [0,1,2,3,4,5,6,7,10,11,12,14,16,17,18],
+    'default': [0,1,2,3,4,5,11,16,17,18],
     'fund':    [0,1,2,4,5,6,7,8,9,10],
     'tech':    [0,1,2,4,11,12,13,14,15],
     'risk':    [0,1,2,4,5,9,10,12,16,17,18],
@@ -7714,27 +7800,102 @@
 
   window.setView = function(name) {
     var visible = VIEW_DEFS[name] || ALL_COLS;
-    var table   = document.getElementById('candidates-table');
-    var ths     = Array.from(table.querySelectorAll('thead tr:first-child th'));
-    ths.forEach(function(th, i) {
-      th.style.display = visible.indexOf(i) !== -1 ? '' : 'none';
+    var ths     = Array.from(tableEl.querySelectorAll('thead th'));
+    // update column header and col-element visibility/width
+    ALL_COLS.forEach(function(i) {
+      var show = visible.indexOf(i) !== -1;
+      ths[i].style.display = show ? '' : 'none';
+      if (cols[i]) cols[i].style.width = show ? (colWidths[i] ? colWidths[i] + 'px' : '') : '0px';
     });
-    Array.from(table.querySelectorAll('tbody tr')).forEach(function(row) {
+    // update body cell visibility
+    Array.from(tableEl.querySelectorAll('tbody tr')).forEach(function(row) {
       Array.from(row.cells).forEach(function(td, i) {
         td.style.display = visible.indexOf(i) !== -1 ? '' : 'none';
       });
     });
-    Array.from(document.querySelectorAll('.view-btn')).forEach(function(b) {
-      b.classList.remove('view-active');
-    });
-    var btn = document.getElementById('vbtn-' + name);
-    if (btn) btn.classList.add('view-active');
+    var sel = document.getElementById('layout-select');
+    if (sel) sel.value = name;
   };
 
-  // initial state
+  // ---- Reset All ----
+  window.resetAll = function() {
+    filterState = { sector: [], quality: [], risk: [], flags: [] };
+    document.getElementById('f-composite').value = '';
+    closeFilter();
+    scorePopup.classList.add('hidden');
+    window.setView('default');
+    sortCol = 4; sortAsc = false; doSort();
+    applyFilters();
+    var sel = document.getElementById('screen-select');
+    if (sel) sel.value = 'all';
+  };
+
+  // ---- synchronized column resize ----
+  // Approach: cache <th> + all <td> cells in the column at drag-start.
+  // rAF-throttled updates keep <th>, all <td>, and <col> in lock-step.
+  var resizing = null;
+  var rafId    = null;
+
+  function startResize(e, handle) {
+    e.preventDefault();
+    e.stopPropagation();
+    var th  = handle.parentElement;
+    var ths = Array.from(tableEl.querySelectorAll('thead th'));
+    var idx = ths.indexOf(th);
+    // cache all td elements in this column (nth-child is 1-based DOM position)
+    var tds = Array.from(tableEl.querySelectorAll('tbody tr td:nth-child(' + (idx + 1) + ')'));
+    resizing = { th: th, col: cols[idx], tds: tds, colIdx: idx, startX: e.clientX, startW: th.offsetWidth, pendingW: null };
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor     = 'col-resize';
+    document.addEventListener('mousemove', onResize);
+    document.addEventListener('mouseup',   stopResize);
+  }
+
+  function applyPendingResize() {
+    rafId = null;
+    if (!resizing || resizing.pendingW === null) return;
+    var w = resizing.pendingW + 'px';
+    resizing.th.style.width = w;
+    resizing.tds.forEach(function(td) { td.style.width = w; });
+    if (resizing.col) resizing.col.style.width = w;
+    colWidths[resizing.colIdx] = resizing.pendingW;
+  }
+
+  function onResize(e) {
+    if (!resizing) return;
+    resizing.pendingW = Math.max(40, resizing.startW + (e.clientX - resizing.startX));
+    if (!rafId) { rafId = requestAnimationFrame(applyPendingResize); }
+  }
+
+  function stopResize() {
+    if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    applyPendingResize(); // flush any remaining pending change
+    resizing = null;
+    document.body.style.userSelect = '';
+    document.body.style.cursor     = '';
+    document.removeEventListener('mousemove', onResize);
+    document.removeEventListener('mouseup',   stopResize);
+  }
+
+  // ---- initialization ----
+  // 1. Measure auto-layout th widths before any view is applied
+  Array.from(tableEl.querySelectorAll('thead th')).forEach(function(th, i) {
+    colWidths[i] = th.offsetWidth;
+  });
+  // 2. Apply default column layout view
   setView('default');
-  document.querySelectorAll('#candidates-table thead tr:first-child th')[4].classList.add('sorted-desc');
+  // 3. Set initial sort indicator
+  tableEl.querySelectorAll('thead tr:first-child th')[4].classList.add('sorted-desc');
+  // 4. Update row count
   updateCount();
+  // 5. Add resize handles to all column headers
+  Array.from(tableEl.querySelectorAll('thead th')).forEach(function(th) {
+    var handle = document.createElement('span');
+    handle.className = 'col-resize';
+    handle.addEventListener('mousedown', function(e) { startResize(e, handle); });
+    handle.addEventListener('click',     function(e) { e.stopPropagation(); });
+    th.appendChild(handle);
+  });
 })();
 </script>
 </body>
