@@ -5,29 +5,43 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>S&amp;P 500 Opportunity &amp; Risk Dashboard</title>
 <style>
+  *, *::before, *::after { box-sizing: border-box; }
   body { font-family: sans-serif; margin: 0; padding: 0; background: #f5f5f5; color: #222; }
-  header { background: #1a1a2e; color: #fff; padding: 16px 32px; }
-  header h1 { margin: 0; font-size: 1.3rem; }
-  .disclaimer { background: #fff3cd; color: #856404; font-size: 0.8rem; padding: 8px 32px; border-bottom: 1px solid #ffc107; }
-  main { padding: 24px 32px; }
-  .meta { font-size: 0.85rem; color: #555; margin-bottom: 20px; }
-  .filter-bar { background: #fff; border-radius: 8px; padding: 14px 20px; box-shadow: 0 1px 3px rgba(0,0,0,.1); display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 20px; }
-  .filter-bar label { font-size: 0.8rem; color: #555; display: block; margin-bottom: 4px; }
-  .filter-bar select, .filter-bar input { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.85rem; }
-  .filter-bar button { background: #1a1a2e; color: #fff; border: none; padding: 7px 16px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; }
-  .filter-bar button:hover { background: #2d2d50; }
-  .filter-bar a.reset { font-size: 0.8rem; color: #888; text-decoration: none; align-self: center; cursor: pointer; }
-  .count { font-size: 0.85rem; color: #555; margin-bottom: 10px; }
+  /* compact header band */
+  .site-header { background: #1a1a2e; color: #fff; padding: 10px 24px 0; }
+  .hrow { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .hrow h1 { margin: 0; font-size: 1.1rem; white-space: nowrap; }
+  .hmeta { font-size: 0.8rem; color: rgba(255,255,255,.65); white-space: nowrap; }
+  .hdisclaim { font-size: 0.72rem; color: rgba(255,255,255,.45); padding: 4px 0 8px; }
+  /* guide inside header */
+  details.guide { border-top: 1px solid rgba(255,255,255,.12); }
+  details.guide summary { padding: 7px 0; font-size: 0.8rem; font-weight: 600; cursor: pointer; user-select: none; color: rgba(255,255,255,.75); list-style: none; display: flex; align-items: center; gap: 6px; }
+  details.guide summary::before { content: "▶"; font-size: 0.6rem; transition: transform 0.15s; }
+  details[open].guide summary::before { transform: rotate(90deg); }
+  details.guide summary:hover { color: #fff; }
+  .guide-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px 24px; padding: 4px 0 12px; }
+  .guide-item dt { font-size: 0.76rem; font-weight: 700; color: rgba(255,255,255,.85); margin-bottom: 2px; }
+  .guide-item dd { font-size: 0.76rem; color: rgba(255,255,255,.5); margin: 0; line-height: 1.4; }
+  /* main content */
+  main { padding: 16px 24px; }
+  /* table */
   table { border-collapse: collapse; width: 100%; background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.1); overflow: hidden; }
-  th { background: #1a1a2e; color: #fff; padding: 10px 12px; text-align: left; font-size: 0.8rem; white-space: nowrap; cursor: pointer; user-select: none; }
-  th:hover { background: #2d2d50; }
-  th.sorted-asc::after { content: " ▲"; }
+  th { background: #1a1a2e; color: #fff; padding: 9px 10px; text-align: left; font-size: 0.78rem; white-space: nowrap; }
+  th.sortable { cursor: pointer; user-select: none; }
+  th.sortable:hover { background: #2d2d50; }
+  th.sorted-asc::after  { content: " ▲"; }
   th.sorted-desc::after { content: " ▼"; }
-  td { padding: 7px 12px; font-size: 0.82rem; border-bottom: 1px solid #eee; white-space: nowrap; }
+  /* per-column filter row */
+  tr.filter-row th { background: #eef1fa; padding: 4px 6px; }
+  tr.filter-row select,
+  tr.filter-row input { width: 100%; font-size: 0.75rem; padding: 3px 5px; border: 1px solid #bbb; border-radius: 3px; background: #fff; color: #222; }
+  /* data rows */
+  td { padding: 6px 10px; font-size: 0.8rem; border-bottom: 1px solid #eee; white-space: nowrap; }
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: #f0f4ff; }
   tr.hidden { display: none; }
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.72rem; font-weight: 600; }
+  /* badges */
+  .badge { display: inline-block; padding: 2px 7px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; }
   .badge-great { background: #d4edda; color: #155724; }
   .badge-good  { background: #d1ecf1; color: #0c5460; }
   .badge-ok    { background: #e2e3e5; color: #383d41; }
@@ -36,26 +50,15 @@
   .badge-watch { background: #fff3cd; color: #856404; }
   .badge-risky { background: #fde8d0; color: #7b3a10; }
   .badge-avoid { background: #f8d7da; color: #721c24; }
-  details.guide { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.1); margin-bottom: 20px; }
-  details.guide summary { padding: 12px 20px; font-size: 0.85rem; font-weight: 600; cursor: pointer; user-select: none; color: #1a1a2e; list-style: none; display: flex; align-items: center; gap: 8px; }
-  details.guide summary::before { content: "▶"; font-size: 0.65rem; transition: transform 0.15s; }
-  details[open].guide summary::before { transform: rotate(90deg); }
-  details.guide summary:hover { background: #f0f4ff; border-radius: 8px; }
-  .guide-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px 24px; padding: 4px 20px 16px; }
-  .guide-item dt { font-size: 0.78rem; font-weight: 700; color: #1a1a2e; margin-bottom: 2px; }
-  .guide-item dd { font-size: 0.78rem; color: #555; margin: 0; line-height: 1.45; }
 </style>
 </head>
 <body>
-<header>
-  <h1>S&amp;P 500 Opportunity &amp; Risk Dashboard</h1>
-</header>
-<div class="disclaimer">
-  &#9888; For research and discussion only. Not financial advice.
-</div>
-<main>
-  <div class="meta">Data as of: 2026-06-08 23:53 UTC &nbsp;|&nbsp; 344 stocks</div>
-
+<header class="site-header">
+  <div class="hrow">
+    <h1>S&amp;P 500 Opportunity &amp; Risk Dashboard</h1>
+    <span class="hmeta">Data as of: 2026-06-09 00:17 UTC&nbsp;&nbsp;|&nbsp;&nbsp;<span id="row-count">344</span> stocks</span>
+  </div>
+  <div class="hdisclaim">&#9888; For research and discussion only. Not financial advice.</div>
   <details class="guide">
     <summary>How to read this dashboard</summary>
     <dl class="guide-grid">
@@ -97,72 +100,67 @@
       </div>
     </dl>
   </details>
-
-  <div class="filter-bar">
-    <div>
-      <label for="f-sector">Sector</label>
-      <select id="f-sector">
-        <option value="">All</option>
-        <option value="Communication Services">Communication Services</option>
-        <option value="Consumer Discretionary">Consumer Discretionary</option>
-        <option value="Consumer Staples">Consumer Staples</option>
-        <option value="Energy">Energy</option>
-        <option value="Financials">Financials</option>
-        <option value="Health Care">Health Care</option>
-        <option value="Industrials">Industrials</option>
-        <option value="Information Technology">Information Technology</option>
-        <option value="Materials">Materials</option>
-        <option value="Real Estate">Real Estate</option>
-        <option value="Utilities">Utilities</option>
-      </select>
-    </div>
-    <div>
-      <label for="f-quality">Quality</label>
-      <select id="f-quality">
-        <option value="">All</option>
-        <option value="AVOID">AVOID</option>
-        <option value="GOOD">GOOD</option>
-        <option value="GREAT">GREAT</option>
-        <option value="OK">OK</option>
-        <option value="WEAK">WEAK</option>
-      </select>
-    </div>
-    <div>
-      <label for="f-risk">Risk</label>
-      <select id="f-risk">
-        <option value="">All</option>
-        <option value="AVOID">AVOID</option>
-        <option value="RISKY">RISKY</option>
-        <option value="SAFE">SAFE</option>
-        <option value="WATCH">WATCH</option>
-      </select>
-    </div>
-    <div>
-      <label for="f-min">Min Composite</label>
-      <input type="number" id="f-min" placeholder="0" min="0" max="100" step="1" style="width:70px">
-    </div>
-    <button onclick="applyFilters()">Apply</button>
-    <a class="reset" onclick="resetFilters()">Reset</a>
-  </div>
-
-  <div class="count" id="row-count"></div>
-
+</header>
+<main>
   <table id="candidates-table">
     <thead>
       <tr>
-        <th onclick="sortTable(0)">Ticker</th>
-        <th onclick="sortTable(1)">Company</th>
-        <th onclick="sortTable(2)">Sector</th>
-        <th onclick="sortTable(3)">Price</th>
-        <th onclick="sortTable(4)">Composite</th>
-        <th onclick="sortTable(5)">Quality</th>
-        <th onclick="sortTable(6)">Risk</th>
-        <th onclick="sortTable(7)">TrendScore</th>
-        <th onclick="sortTable(8)">1M %</th>
-        <th onclick="sortTable(9)">RS vs SPY 1M</th>
-        <th onclick="sortTable(10)">Dist 52W Hi %</th>
-        <th onclick="sortTable(11)">Days&#x2192;Earn</th>
-        <th onclick="sortTable(12)">Risk Flags</th>
+        <th class="sortable" onclick="sortTable(0)">Ticker</th>
+        <th class="sortable" onclick="sortTable(1)">Company</th>
+        <th class="sortable" onclick="sortTable(2)">Sector</th>
+        <th class="sortable" onclick="sortTable(3)">Price</th>
+        <th class="sortable" onclick="sortTable(4)">Composite</th>
+        <th class="sortable" onclick="sortTable(5)">Quality</th>
+        <th class="sortable" onclick="sortTable(6)">Risk</th>
+        <th class="sortable" onclick="sortTable(7)">TrendScore</th>
+        <th class="sortable" onclick="sortTable(8)">1M %</th>
+        <th class="sortable" onclick="sortTable(9)">RS vs SPY 1M</th>
+        <th class="sortable" onclick="sortTable(10)">Dist 52W Hi %</th>
+        <th class="sortable" onclick="sortTable(11)">Days&#x2192;Earn</th>
+        <th class="sortable" onclick="sortTable(12)">Risk Flags</th>
+      </tr>
+      <tr class="filter-row">
+        <th colspan="2"></th>
+        <th>
+          <select id="f-sector" onchange="applyFilters()">
+            <option value="">All sectors</option>
+              <option value="Communication Services">Communication Services</option>
+              <option value="Consumer Discretionary">Consumer Discretionary</option>
+              <option value="Consumer Staples">Consumer Staples</option>
+              <option value="Energy">Energy</option>
+              <option value="Financials">Financials</option>
+              <option value="Health Care">Health Care</option>
+              <option value="Industrials">Industrials</option>
+              <option value="Information Technology">Information Technology</option>
+              <option value="Materials">Materials</option>
+              <option value="Real Estate">Real Estate</option>
+              <option value="Utilities">Utilities</option>
+          </select>
+        </th>
+        <th></th>
+        <th>
+          <input type="number" id="f-composite" placeholder="≥ 0" min="0" max="100" step="1"
+                 style="width:68px" oninput="applyFilters()">
+        </th>
+        <th>
+          <select id="f-quality" onchange="applyFilters()">
+            <option value="">All</option>
+              <option value="GREAT">GREAT</option>
+              <option value="GOOD">GOOD</option>
+              <option value="OK">OK</option>
+              <option value="WEAK">WEAK</option>
+          </select>
+        </th>
+        <th>
+          <select id="f-risk" onchange="applyFilters()">
+            <option value="">All</option>
+              <option value="SAFE">SAFE</option>
+              <option value="WATCH">WATCH</option>
+              <option value="RISKY">RISKY</option>
+              <option value="AVOID">AVOID</option>
+          </select>
+        </th>
+        <th colspan="6"></th>
       </tr>
     </thead>
     <tbody>
@@ -178,7 +176,7 @@
         <td>46.8</td>
         <td>45.76</td>
         <td>12.85</td>
-        <td>16.0</td>
+        <td>15.0</td>
         <td>HIGH_BETA</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="OK" data-risk="SAFE" data-composite="94.28">
@@ -193,7 +191,7 @@
         <td>25.92</td>
         <td>24.88</td>
         <td>8.65</td>
-        <td>-33.0</td>
+        <td>-34.0</td>
         <td>HIGH_BETA</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="OK" data-risk="SAFE" data-composite="88.09">
@@ -208,7 +206,7 @@
         <td>0.32</td>
         <td>-0.73</td>
         <td>17.53</td>
-        <td>-34.0</td>
+        <td>-35.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="GREAT" data-risk="SAFE" data-composite="86.05">
@@ -223,7 +221,7 @@
         <td>5.85</td>
         <td>4.81</td>
         <td>11.2</td>
-        <td>-41.0</td>
+        <td>-42.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="GREAT" data-risk="SAFE" data-composite="84.06">
@@ -238,7 +236,7 @@
         <td>13.61</td>
         <td>12.57</td>
         <td>12.53</td>
-        <td>51.0</td>
+        <td>50.0</td>
         <td>HIGH_BETA</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="OK" data-risk="SAFE" data-composite="77.72">
@@ -253,7 +251,7 @@
         <td>14.4</td>
         <td>13.35</td>
         <td>9.31</td>
-        <td>50.0</td>
+        <td>49.0</td>
         <td>HIGH_BETA</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="GOOD" data-risk="SAFE" data-composite="72.05">
@@ -268,7 +266,7 @@
         <td>20.04</td>
         <td>19.0</td>
         <td>10.27</td>
-        <td>57.0</td>
+        <td>56.0</td>
         <td>HIGH_BETA</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="GOOD" data-risk="SAFE" data-composite="71.77">
@@ -283,7 +281,7 @@
         <td>7.91</td>
         <td>6.87</td>
         <td>15.91</td>
-        <td>51.0</td>
+        <td>50.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="GOOD" data-risk="SAFE" data-composite="70.89">
@@ -298,7 +296,7 @@
         <td>13.24</td>
         <td>12.19</td>
         <td>6.28</td>
-        <td>51.0</td>
+        <td>50.0</td>
         <td>HIGH_BETA</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="GREAT" data-risk="SAFE" data-composite="70.04">
@@ -313,7 +311,7 @@
         <td>28.35</td>
         <td>27.3</td>
         <td>14.2</td>
-        <td>52.0</td>
+        <td>51.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="OK" data-risk="SAFE" data-composite="69.98">
@@ -328,7 +326,7 @@
         <td>2.98</td>
         <td>1.93</td>
         <td>11.32</td>
-        <td>50.0</td>
+        <td>49.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="GOOD" data-risk="SAFE" data-composite="66.94">
@@ -343,7 +341,7 @@
         <td>20.0</td>
         <td>18.96</td>
         <td>3.64</td>
-        <td>66.0</td>
+        <td>65.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="GOOD" data-risk="SAFE" data-composite="65.85">
@@ -358,7 +356,7 @@
         <td>74.04</td>
         <td>73.0</td>
         <td>14.63</td>
-        <td>87.0</td>
+        <td>86.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="GOOD" data-risk="SAFE" data-composite="54.29">
@@ -373,7 +371,7 @@
         <td>10.34</td>
         <td>9.29</td>
         <td>13.01</td>
-        <td>57.0</td>
+        <td>56.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Real Estate" data-quality="GOOD" data-risk="SAFE" data-composite="54.17">
@@ -388,7 +386,7 @@
         <td>12.78</td>
         <td>11.74</td>
         <td>1.85</td>
-        <td>51.0</td>
+        <td>50.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="GOOD" data-risk="SAFE" data-composite="53.78">
@@ -403,7 +401,7 @@
         <td>12.99</td>
         <td>11.95</td>
         <td>24.4</td>
-        <td>58.0</td>
+        <td>57.0</td>
         <td>HIGH_BETA</td>
       </tr>
       <tr data-sector="Communication Services" data-quality="OK" data-risk="SAFE" data-composite="53.45">
@@ -418,7 +416,7 @@
         <td>0.58</td>
         <td>-0.46</td>
         <td>12.2</td>
-        <td>57.0</td>
+        <td>56.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="OK" data-risk="SAFE" data-composite="51.4">
@@ -433,7 +431,7 @@
         <td>67.91</td>
         <td>66.87</td>
         <td>22.38</td>
-        <td>-7.0</td>
+        <td>-8.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Materials" data-quality="GOOD" data-risk="SAFE" data-composite="51.26">
@@ -448,7 +446,7 @@
         <td>14.72</td>
         <td>13.67</td>
         <td>4.74</td>
-        <td>-49.0</td>
+        <td>-50.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="OK" data-risk="SAFE" data-composite="51.07">
@@ -463,7 +461,7 @@
         <td>22.76</td>
         <td>21.71</td>
         <td>16.87</td>
-        <td>59.0</td>
+        <td>58.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Industrials" data-quality="OK" data-risk="SAFE" data-composite="49.51">
@@ -478,7 +476,7 @@
         <td>-0.32</td>
         <td>-1.37</td>
         <td>9.62</td>
-        <td>51.0</td>
+        <td>50.0</td>
         <td>HIGH_BETA</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="GOOD" data-risk="SAFE" data-composite="48.64">
@@ -493,7 +491,7 @@
         <td>-0.86</td>
         <td>-1.91</td>
         <td>8.14</td>
-        <td>72.0</td>
+        <td>71.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Energy" data-quality="OK" data-risk="SAFE" data-composite="47.76">
@@ -508,22 +506,22 @@
         <td>10.29</td>
         <td>9.24</td>
         <td>2.31</td>
-        <td>57.0</td>
+        <td>56.0</td>
         <td>CLEAR</td>
       </tr>
-      <tr data-sector="Financials" data-quality="GREAT" data-risk="SAFE" data-composite="47.65">
+      <tr data-sector="Financials" data-quality="GREAT" data-risk="SAFE" data-composite="47.67">
         <td><strong>AFL</strong></td>
         <td>Aflac</td>
         <td>Financials</td>
         <td>115.24</td>
-        <td><strong>47.65</strong></td>
+        <td><strong>47.67</strong></td>
         <td><span class="badge badge-great">GREAT</span></td>
         <td><span class="badge badge-safe">SAFE</span></td>
         <td>75</td>
         <td>1.97</td>
-        <td>0.92</td>
-        <td>3.32</td>
-        <td>-40.0</td>
+        <td>0.93</td>
+        <td>3.31</td>
+        <td>-41.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Industrials" data-quality="OK" data-risk="SAFE" data-composite="47.48">
@@ -538,7 +536,7 @@
         <td>19.21</td>
         <td>18.16</td>
         <td>0.61</td>
-        <td>36.0</td>
+        <td>35.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="OK" data-risk="SAFE" data-composite="47.37">
@@ -553,7 +551,7 @@
         <td>0.65</td>
         <td>-0.4</td>
         <td>15.74</td>
-        <td>64.0</td>
+        <td>63.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="GOOD" data-risk="SAFE" data-composite="46.92">
@@ -568,7 +566,7 @@
         <td>32.48</td>
         <td>31.44</td>
         <td>4.68</td>
-        <td>58.0</td>
+        <td>57.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="GOOD" data-risk="SAFE" data-composite="46.88">
@@ -583,7 +581,7 @@
         <td>1.98</td>
         <td>0.94</td>
         <td>12.25</td>
-        <td>44.0</td>
+        <td>43.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Consumer Staples" data-quality="GREAT" data-risk="SAFE" data-composite="46.7">
@@ -598,7 +596,7 @@
         <td>16.45</td>
         <td>15.41</td>
         <td>2.18</td>
-        <td>59.0</td>
+        <td>58.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Industrials" data-quality="OK" data-risk="SAFE" data-composite="46.61">
@@ -613,7 +611,7 @@
         <td>2.23</td>
         <td>1.18</td>
         <td>3.29</td>
-        <td>57.0</td>
+        <td>56.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="GREAT" data-risk="SAFE" data-composite="46.49">
@@ -628,7 +626,7 @@
         <td>-1.24</td>
         <td>-2.28</td>
         <td>11.69</td>
-        <td>79.0</td>
+        <td>78.0</td>
         <td>HIGH_BETA</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="GOOD" data-risk="SAFE" data-composite="45.71">
@@ -643,7 +641,7 @@
         <td>10.46</td>
         <td>9.42</td>
         <td>5.39</td>
-        <td>49.0</td>
+        <td>48.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Financials" data-quality="GOOD" data-risk="SAFE" data-composite="45.71">
@@ -658,7 +656,7 @@
         <td>3.25</td>
         <td>2.2</td>
         <td>1.87</td>
-        <td>36.0</td>
+        <td>35.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Financials" data-quality="GOOD" data-risk="SAFE" data-composite="45.1">
@@ -673,7 +671,7 @@
         <td>4.45</td>
         <td>3.4</td>
         <td>4.03</td>
-        <td>36.0</td>
+        <td>35.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="GOOD" data-risk="SAFE" data-composite="45.06">
@@ -688,7 +686,7 @@
         <td>14.83</td>
         <td>13.79</td>
         <td>3.73</td>
-        <td>51.0</td>
+        <td>50.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Industrials" data-quality="GOOD" data-risk="SAFE" data-composite="44.91">
@@ -703,7 +701,7 @@
         <td>8.18</td>
         <td>7.14</td>
         <td>1.74</td>
-        <td>57.0</td>
+        <td>56.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Industrials" data-quality="OK" data-risk="SAFE" data-composite="44.89">
@@ -718,7 +716,7 @@
         <td>-7.58</td>
         <td>-8.63</td>
         <td>12.04</td>
-        <td>52.0</td>
+        <td>51.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Financials" data-quality="GOOD" data-risk="SAFE" data-composite="44.64">
@@ -733,7 +731,7 @@
         <td>3.07</td>
         <td>2.03</td>
         <td>1.4</td>
-        <td>44.0</td>
+        <td>43.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Industrials" data-quality="OK" data-risk="SAFE" data-composite="44.62">
@@ -748,7 +746,7 @@
         <td>7.25</td>
         <td>6.21</td>
         <td>6.7</td>
-        <td>31.0</td>
+        <td>30.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Industrials" data-quality="GOOD" data-risk="SAFE" data-composite="44.54">
@@ -763,7 +761,7 @@
         <td>2.09</td>
         <td>1.05</td>
         <td>2.0</td>
-        <td>51.0</td>
+        <td>50.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Energy" data-quality="OK" data-risk="SAFE" data-composite="44.52">
@@ -778,7 +776,7 @@
         <td>9.85</td>
         <td>8.8</td>
         <td>2.72</td>
-        <td>52.0</td>
+        <td>51.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Materials" data-quality="GOOD" data-risk="SAFE" data-composite="44.09">
@@ -793,7 +791,7 @@
         <td>5.44</td>
         <td>4.4</td>
         <td>11.35</td>
-        <td>44.0</td>
+        <td>43.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="GOOD" data-risk="SAFE" data-composite="44.09">
@@ -808,22 +806,7 @@
         <td>5.11</td>
         <td>4.06</td>
         <td>13.86</td>
-        <td>51.0</td>
-        <td>CLEAR</td>
-      </tr>
-      <tr data-sector="Industrials" data-quality="OK" data-risk="SAFE" data-composite="43.99">
-        <td><strong>FDX</strong></td>
-        <td>FedEx</td>
-        <td>Industrials</td>
-        <td>330.22</td>
-        <td><strong>43.99</strong></td>
-        <td><span class="badge badge-ok">OK</span></td>
-        <td><span class="badge badge-safe">SAFE</span></td>
-        <td>78</td>
-        <td>9.69</td>
-        <td>8.64</td>
-        <td>3.2</td>
-        <td>15.0</td>
+        <td>50.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="GOOD" data-risk="SAFE" data-composite="43.9">
@@ -838,7 +821,7 @@
         <td>34.71</td>
         <td>33.67</td>
         <td>4.77</td>
-        <td>65.0</td>
+        <td>64.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Real Estate" data-quality="GOOD" data-risk="SAFE" data-composite="43.88">
@@ -853,7 +836,7 @@
         <td>5.56</td>
         <td>4.51</td>
         <td>1.21</td>
-        <td>-38.0</td>
+        <td>-39.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Energy" data-quality="OK" data-risk="SAFE" data-composite="43.74">
@@ -868,22 +851,7 @@
         <td>7.26</td>
         <td>6.22</td>
         <td>3.35</td>
-        <td>46.0</td>
-        <td>CLEAR</td>
-      </tr>
-      <tr data-sector="Health Care" data-quality="OK" data-risk="SAFE" data-composite="43.71">
-        <td><strong>MRK</strong></td>
-        <td>Merck &amp; Co.</td>
-        <td>Health Care</td>
-        <td>119.52</td>
-        <td><strong>43.71</strong></td>
-        <td><span class="badge badge-ok">OK</span></td>
-        <td><span class="badge badge-safe">SAFE</span></td>
-        <td>77</td>
-        <td>6.43</td>
-        <td>5.38</td>
-        <td>3.78</td>
-        <td>57.0</td>
+        <td>45.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Energy" data-quality="GREAT" data-risk="SAFE" data-composite="43.71">
@@ -898,7 +866,22 @@
         <td>7.07</td>
         <td>6.03</td>
         <td>7.0</td>
-        <td>-34.0</td>
+        <td>-35.0</td>
+        <td>CLEAR</td>
+      </tr>
+      <tr data-sector="Health Care" data-quality="OK" data-risk="SAFE" data-composite="43.71">
+        <td><strong>MRK</strong></td>
+        <td>Merck &amp; Co.</td>
+        <td>Health Care</td>
+        <td>119.52</td>
+        <td><strong>43.71</strong></td>
+        <td><span class="badge badge-ok">OK</span></td>
+        <td><span class="badge badge-safe">SAFE</span></td>
+        <td>77</td>
+        <td>6.43</td>
+        <td>5.38</td>
+        <td>3.78</td>
+        <td>56.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Materials" data-quality="GOOD" data-risk="SAFE" data-composite="43.68">
@@ -913,7 +896,7 @@
         <td>11.78</td>
         <td>10.73</td>
         <td>4.26</td>
-        <td>49.0</td>
+        <td>48.0</td>
         <td>HIGH_BETA</td>
       </tr>
       <tr data-sector="Financials" data-quality="GOOD" data-risk="SAFE" data-composite="43.44">
@@ -928,7 +911,7 @@
         <td>14.15</td>
         <td>13.1</td>
         <td>5.01</td>
-        <td>58.0</td>
+        <td>57.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Industrials" data-quality="OK" data-risk="SAFE" data-composite="43.24">
@@ -943,7 +926,7 @@
         <td>6.3</td>
         <td>5.25</td>
         <td>0.61</td>
-        <td>-47.0</td>
+        <td>-48.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Industrials" data-quality="GOOD" data-risk="SAFE" data-composite="43.15">
@@ -958,7 +941,7 @@
         <td>1.0</td>
         <td>-0.04</td>
         <td>3.51</td>
-        <td>59.0</td>
+        <td>58.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Real Estate" data-quality="GOOD" data-risk="SAFE" data-composite="43.09">
@@ -973,7 +956,7 @@
         <td>0.57</td>
         <td>-0.48</td>
         <td>0.78</td>
-        <td>-42.0</td>
+        <td>-43.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Consumer Discretionary" data-quality="OK" data-risk="SAFE" data-composite="42.85">
@@ -988,7 +971,7 @@
         <td>11.4</td>
         <td>10.36</td>
         <td>1.32</td>
-        <td>57.0</td>
+        <td>56.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Financials" data-quality="OK" data-risk="SAFE" data-composite="42.58">
@@ -1003,7 +986,7 @@
         <td>3.49</td>
         <td>2.45</td>
         <td>5.49</td>
-        <td>43.0</td>
+        <td>42.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="GOOD" data-risk="SAFE" data-composite="42.32">
@@ -1018,7 +1001,7 @@
         <td>50.72</td>
         <td>49.67</td>
         <td>11.68</td>
-        <td>-11.0</td>
+        <td>-12.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Financials" data-quality="GOOD" data-risk="SAFE" data-composite="42.31">
@@ -1033,7 +1016,7 @@
         <td>6.16</td>
         <td>5.12</td>
         <td>2.23</td>
-        <td>44.0</td>
+        <td>43.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Consumer Staples" data-quality="GOOD" data-risk="SAFE" data-composite="42.05">
@@ -1048,7 +1031,7 @@
         <td>3.26</td>
         <td>2.21</td>
         <td>4.39</td>
-        <td>52.0</td>
+        <td>51.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="GOOD" data-risk="SAFE" data-composite="41.97">
@@ -1063,7 +1046,7 @@
         <td>3.76</td>
         <td>2.72</td>
         <td>11.42</td>
-        <td>49.0</td>
+        <td>48.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Health Care" data-quality="GOOD" data-risk="SAFE" data-composite="41.96">
@@ -1078,7 +1061,7 @@
         <td>-0.7</td>
         <td>-1.75</td>
         <td>3.36</td>
-        <td>45.0</td>
+        <td>44.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Industrials" data-quality="OK" data-risk="SAFE" data-composite="41.77">
@@ -1093,7 +1076,7 @@
         <td>5.64</td>
         <td>4.59</td>
         <td>11.65</td>
-        <td>-48.0</td>
+        <td>-49.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Real Estate" data-quality="GOOD" data-risk="SAFE" data-composite="41.73">
@@ -1108,7 +1091,7 @@
         <td>2.95</td>
         <td>1.91</td>
         <td>2.05</td>
-        <td>56.0</td>
+        <td>55.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Financials" data-quality="GOOD" data-risk="SAFE" data-composite="41.19">
@@ -1123,7 +1106,7 @@
         <td>2.85</td>
         <td>1.81</td>
         <td>3.33</td>
-        <td>-41.0</td>
+        <td>-42.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Consumer Discretionary" data-quality="GOOD" data-risk="SAFE" data-composite="41.06">
@@ -1138,7 +1121,7 @@
         <td>5.46</td>
         <td>4.41</td>
         <td>5.23</td>
-        <td>59.0</td>
+        <td>58.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Industrials" data-quality="OK" data-risk="SAFE" data-composite="41.03">
@@ -1153,7 +1136,7 @@
         <td>-1.18</td>
         <td>-2.23</td>
         <td>6.03</td>
-        <td>57.0</td>
+        <td>56.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Financials" data-quality="GOOD" data-risk="SAFE" data-composite="40.96">
@@ -1168,7 +1151,7 @@
         <td>1.44</td>
         <td>0.4</td>
         <td>4.81</td>
-        <td>-53.0</td>
+        <td>-54.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Health Care" data-quality="OK" data-risk="SAFE" data-composite="40.94">
@@ -1183,7 +1166,7 @@
         <td>-2.13</td>
         <td>-3.17</td>
         <td>5.23</td>
-        <td>58.0</td>
+        <td>57.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Financials" data-quality="OK" data-risk="SAFE" data-composite="40.48">
@@ -1198,7 +1181,7 @@
         <td>11.61</td>
         <td>10.56</td>
         <td>3.16</td>
-        <td>37.0</td>
+        <td>36.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Financials" data-quality="GOOD" data-risk="SAFE" data-composite="40.41">
@@ -1213,7 +1196,7 @@
         <td>1.16</td>
         <td>0.12</td>
         <td>5.04</td>
-        <td>-40.0</td>
+        <td>-41.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Financials" data-quality="OK" data-risk="SAFE" data-composite="40.4">
@@ -1228,7 +1211,7 @@
         <td>4.61</td>
         <td>3.57</td>
         <td>5.42</td>
-        <td>39.0</td>
+        <td>38.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Consumer Discretionary" data-quality="OK" data-risk="SAFE" data-composite="40.37">
@@ -1243,7 +1226,7 @@
         <td>6.4</td>
         <td>5.35</td>
         <td>1.79</td>
-        <td>51.0</td>
+        <td>50.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Industrials" data-quality="OK" data-risk="WATCH" data-composite="40.35">
@@ -1258,7 +1241,7 @@
         <td>24.87</td>
         <td>23.83</td>
         <td>1.47</td>
-        <td>51.0</td>
+        <td>50.0</td>
         <td>RSI_OVERBOUGHT</td>
       </tr>
       <tr data-sector="Materials" data-quality="OK" data-risk="SAFE" data-composite="40.32">
@@ -1273,7 +1256,7 @@
         <td>1.96</td>
         <td>0.91</td>
         <td>3.41</td>
-        <td>53.0</td>
+        <td>52.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Financials" data-quality="OK" data-risk="SAFE" data-composite="40.28">
@@ -1288,7 +1271,7 @@
         <td>8.76</td>
         <td>7.71</td>
         <td>1.31</td>
-        <td>38.0</td>
+        <td>37.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Real Estate" data-quality="OK" data-risk="SAFE" data-composite="40.2">
@@ -1303,7 +1286,7 @@
         <td>4.12</td>
         <td>3.08</td>
         <td>0.45</td>
-        <td>52.0</td>
+        <td>51.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Consumer Discretionary" data-quality="GOOD" data-risk="SAFE" data-composite="39.74">
@@ -1318,7 +1301,7 @@
         <td>2.18</td>
         <td>1.13</td>
         <td>8.86</td>
-        <td>51.0</td>
+        <td>50.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="GOOD" data-risk="SAFE" data-composite="39.69">
@@ -1333,7 +1316,7 @@
         <td>5.0</td>
         <td>3.96</td>
         <td>5.0</td>
-        <td>52.0</td>
+        <td>51.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Financials" data-quality="GOOD" data-risk="SAFE" data-composite="39.6">
@@ -1348,7 +1331,7 @@
         <td>2.19</td>
         <td>1.15</td>
         <td>5.8</td>
-        <td>36.0</td>
+        <td>35.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Energy" data-quality="OK" data-risk="SAFE" data-composite="39.49">
@@ -1363,7 +1346,7 @@
         <td>3.98</td>
         <td>2.94</td>
         <td>6.7</td>
-        <td>43.0</td>
+        <td>42.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Energy" data-quality="GOOD" data-risk="SAFE" data-composite="39.41">
@@ -1377,8 +1360,8 @@
         <td>75</td>
         <td>2.06</td>
         <td>1.02</td>
-        <td>7.6</td>
-        <td>43.0</td>
+        <td>7.61</td>
+        <td>42.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Financials" data-quality="GOOD" data-risk="SAFE" data-composite="39.24">
@@ -1393,7 +1376,7 @@
         <td>2.85</td>
         <td>1.8</td>
         <td>6.47</td>
-        <td>43.0</td>
+        <td>42.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Industrials" data-quality="GOOD" data-risk="SAFE" data-composite="39.07">
@@ -1408,7 +1391,7 @@
         <td>3.39</td>
         <td>2.35</td>
         <td>4.4</td>
-        <td>38.0</td>
+        <td>37.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Industrials" data-quality="OK" data-risk="SAFE" data-composite="39.03">
@@ -1423,7 +1406,7 @@
         <td>1.28</td>
         <td>0.23</td>
         <td>7.16</td>
-        <td>57.0</td>
+        <td>56.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Industrials" data-quality="OK" data-risk="SAFE" data-composite="38.9">
@@ -1438,7 +1421,7 @@
         <td>-0.68</td>
         <td>-1.72</td>
         <td>4.93</td>
-        <td>-45.0</td>
+        <td>-46.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Communication Services" data-quality="GREAT" data-risk="SAFE" data-composite="38.8">
@@ -1453,7 +1436,7 @@
         <td>-8.58</td>
         <td>-9.62</td>
         <td>10.65</td>
-        <td>45.0</td>
+        <td>44.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Industrials" data-quality="OK" data-risk="SAFE" data-composite="38.79">
@@ -1468,7 +1451,7 @@
         <td>6.41</td>
         <td>5.37</td>
         <td>7.45</td>
-        <td>38.0</td>
+        <td>37.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Financials" data-quality="GOOD" data-risk="SAFE" data-composite="38.76">
@@ -1483,7 +1466,7 @@
         <td>8.16</td>
         <td>7.12</td>
         <td>3.1</td>
-        <td>57.0</td>
+        <td>56.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Health Care" data-quality="GOOD" data-risk="SAFE" data-composite="38.74">
@@ -1498,7 +1481,7 @@
         <td>3.73</td>
         <td>2.69</td>
         <td>4.06</td>
-        <td>45.0</td>
+        <td>44.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Consumer Staples" data-quality="GOOD" data-risk="SAFE" data-composite="38.6">
@@ -1513,7 +1496,7 @@
         <td>1.42</td>
         <td>0.37</td>
         <td>3.77</td>
-        <td>43.0</td>
+        <td>42.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Financials" data-quality="GOOD" data-risk="SAFE" data-composite="38.54">
@@ -1528,7 +1511,7 @@
         <td>3.14</td>
         <td>2.1</td>
         <td>7.66</td>
-        <td>39.0</td>
+        <td>38.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Industrials" data-quality="GOOD" data-risk="SAFE" data-composite="38.42">
@@ -1543,7 +1526,7 @@
         <td>3.7</td>
         <td>2.65</td>
         <td>7.69</td>
-        <td>35.0</td>
+        <td>34.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Real Estate" data-quality="OK" data-risk="SAFE" data-composite="38.4">
@@ -1558,7 +1541,7 @@
         <td>-2.61</td>
         <td>-3.65</td>
         <td>7.9</td>
-        <td>-39.0</td>
+        <td>-40.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Energy" data-quality="OK" data-risk="WATCH" data-composite="38.31">
@@ -1572,8 +1555,8 @@
         <td>57</td>
         <td>3.92</td>
         <td>2.87</td>
-        <td>16.97</td>
-        <td>58.0</td>
+        <td>16.98</td>
+        <td>57.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Consumer Discretionary" data-quality="GOOD" data-risk="SAFE" data-composite="38.27">
@@ -1588,7 +1571,7 @@
         <td>3.75</td>
         <td>2.7</td>
         <td>3.35</td>
-        <td>72.0</td>
+        <td>71.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Health Care" data-quality="GREAT" data-risk="SAFE" data-composite="38.27">
@@ -1603,7 +1586,7 @@
         <td>2.94</td>
         <td>1.89</td>
         <td>10.37</td>
-        <td>50.0</td>
+        <td>49.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Financials" data-quality="GOOD" data-risk="SAFE" data-composite="38.24">
@@ -1633,7 +1616,7 @@
         <td>4.63</td>
         <td>3.59</td>
         <td>5.67</td>
-        <td>59.0</td>
+        <td>58.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Industrials" data-quality="OK" data-risk="SAFE" data-composite="38.1">
@@ -1648,7 +1631,7 @@
         <td>3.45</td>
         <td>2.4</td>
         <td>2.92</td>
-        <td>50.0</td>
+        <td>49.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Real Estate" data-quality="GOOD" data-risk="SAFE" data-composite="38.09">
@@ -1663,7 +1646,7 @@
         <td>0.34</td>
         <td>-0.7</td>
         <td>3.48</td>
-        <td>38.0</td>
+        <td>37.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Consumer Discretionary" data-quality="GOOD" data-risk="SAFE" data-composite="38.08">
@@ -1678,7 +1661,7 @@
         <td>1.31</td>
         <td>0.27</td>
         <td>4.21</td>
-        <td>73.0</td>
+        <td>72.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Industrials" data-quality="OK" data-risk="SAFE" data-composite="37.96">
@@ -1693,7 +1676,7 @@
         <td>10.16</td>
         <td>9.11</td>
         <td>6.84</td>
-        <td>51.0</td>
+        <td>50.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Real Estate" data-quality="OK" data-risk="SAFE" data-composite="37.95">
@@ -1708,7 +1691,7 @@
         <td>5.47</td>
         <td>4.43</td>
         <td>2.19</td>
-        <td>50.0</td>
+        <td>49.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Financials" data-quality="GOOD" data-risk="SAFE" data-composite="37.94">
@@ -1723,22 +1706,7 @@
         <td>1.58</td>
         <td>0.54</td>
         <td>6.9</td>
-        <td>36.0</td>
-        <td>CLEAR</td>
-      </tr>
-      <tr data-sector="Health Care" data-quality="GOOD" data-risk="SAFE" data-composite="37.85">
-        <td><strong>BIIB</strong></td>
-        <td>Biogen</td>
-        <td>Health Care</td>
-        <td>192.62</td>
-        <td><strong>37.85</strong></td>
-        <td><span class="badge badge-good">GOOD</span></td>
-        <td><span class="badge badge-safe">SAFE</span></td>
-        <td>76</td>
-        <td>0.65</td>
-        <td>-0.4</td>
-        <td>6.48</td>
-        <td>52.0</td>
+        <td>35.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="OK" data-risk="SAFE" data-composite="37.85">
@@ -1753,7 +1721,22 @@
         <td>22.3</td>
         <td>21.25</td>
         <td>15.53</td>
-        <td>44.0</td>
+        <td>43.0</td>
+        <td>CLEAR</td>
+      </tr>
+      <tr data-sector="Health Care" data-quality="GOOD" data-risk="SAFE" data-composite="37.85">
+        <td><strong>BIIB</strong></td>
+        <td>Biogen</td>
+        <td>Health Care</td>
+        <td>192.62</td>
+        <td><strong>37.85</strong></td>
+        <td><span class="badge badge-good">GOOD</span></td>
+        <td><span class="badge badge-safe">SAFE</span></td>
+        <td>76</td>
+        <td>0.65</td>
+        <td>-0.4</td>
+        <td>6.48</td>
+        <td>51.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="OK" data-risk="SAFE" data-composite="37.77">
@@ -1768,7 +1751,7 @@
         <td>20.91</td>
         <td>19.87</td>
         <td>14.4</td>
-        <td>79.0</td>
+        <td>78.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Consumer Discretionary" data-quality="OK" data-risk="SAFE" data-composite="37.65">
@@ -1783,7 +1766,7 @@
         <td>26.7</td>
         <td>25.66</td>
         <td>10.23</td>
-        <td>80.0</td>
+        <td>79.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Financials" data-quality="GOOD" data-risk="SAFE" data-composite="37.63">
@@ -1798,7 +1781,7 @@
         <td>0.2</td>
         <td>-0.84</td>
         <td>5.78</td>
-        <td>38.0</td>
+        <td>37.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Consumer Discretionary" data-quality="GOOD" data-risk="SAFE" data-composite="37.61">
@@ -1813,7 +1796,22 @@
         <td>6.82</td>
         <td>5.78</td>
         <td>13.26</td>
-        <td>45.0</td>
+        <td>44.0</td>
+        <td>CLEAR</td>
+      </tr>
+      <tr data-sector="Real Estate" data-quality="OK" data-risk="SAFE" data-composite="37.57">
+        <td><strong>AVB</strong></td>
+        <td>AvalonBay Communities</td>
+        <td>Real Estate</td>
+        <td>187.61</td>
+        <td><strong>37.57</strong></td>
+        <td><span class="badge badge-ok">OK</span></td>
+        <td><span class="badge badge-safe">SAFE</span></td>
+        <td>77</td>
+        <td>0.98</td>
+        <td>-0.06</td>
+        <td>7.11</td>
+        <td>-43.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Real Estate" data-quality="OK" data-risk="SAFE" data-composite="37.57">
@@ -1828,21 +1826,6 @@
         <td>1.21</td>
         <td>0.16</td>
         <td>5.48</td>
-        <td>-41.0</td>
-        <td>CLEAR</td>
-      </tr>
-      <tr data-sector="Real Estate" data-quality="OK" data-risk="SAFE" data-composite="37.55">
-        <td><strong>AVB</strong></td>
-        <td>AvalonBay Communities</td>
-        <td>Real Estate</td>
-        <td>187.61</td>
-        <td><strong>37.55</strong></td>
-        <td><span class="badge badge-ok">OK</span></td>
-        <td><span class="badge badge-safe">SAFE</span></td>
-        <td>77</td>
-        <td>0.98</td>
-        <td>-0.06</td>
-        <td>7.12</td>
         <td>-42.0</td>
         <td>CLEAR</td>
       </tr>
@@ -1858,7 +1841,7 @@
         <td>-3.87</td>
         <td>-4.91</td>
         <td>19.88</td>
-        <td>87.0</td>
+        <td>86.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Industrials" data-quality="OK" data-risk="SAFE" data-composite="37.32">
@@ -1873,7 +1856,7 @@
         <td>1.95</td>
         <td>0.91</td>
         <td>3.44</td>
-        <td>45.0</td>
+        <td>44.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Financials" data-quality="OK" data-risk="SAFE" data-composite="37.22">
@@ -1888,7 +1871,7 @@
         <td>7.88</td>
         <td>6.83</td>
         <td>1.07</td>
-        <td>-33.0</td>
+        <td>-34.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Financials" data-quality="GOOD" data-risk="SAFE" data-composite="37.14">
@@ -1903,22 +1886,22 @@
         <td>5.83</td>
         <td>4.79</td>
         <td>0.91</td>
-        <td>-46.0</td>
+        <td>-47.0</td>
         <td>CLEAR</td>
       </tr>
-      <tr data-sector="Utilities" data-quality="OK" data-risk="WATCH" data-composite="37.09">
+      <tr data-sector="Utilities" data-quality="OK" data-risk="WATCH" data-composite="37.08">
         <td><strong>LNT</strong></td>
         <td>Alliant Energy</td>
         <td>Utilities</td>
         <td>71.71</td>
-        <td><strong>37.09</strong></td>
+        <td><strong>37.08</strong></td>
         <td><span class="badge badge-ok">OK</span></td>
         <td><span class="badge badge-watch">WATCH</span></td>
         <td>58</td>
         <td>0.03</td>
         <td>-1.02</td>
-        <td>5.34</td>
-        <td>-39.0</td>
+        <td>5.35</td>
+        <td>-40.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Real Estate" data-quality="OK" data-risk="SAFE" data-composite="37.05">
@@ -1933,7 +1916,7 @@
         <td>2.25</td>
         <td>1.2</td>
         <td>2.45</td>
-        <td>-41.0</td>
+        <td>-42.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Health Care" data-quality="OK" data-risk="SAFE" data-composite="36.95">
@@ -1948,7 +1931,7 @@
         <td>4.94</td>
         <td>3.89</td>
         <td>7.24</td>
-        <td>37.0</td>
+        <td>36.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Financials" data-quality="GOOD" data-risk="SAFE" data-composite="36.94">
@@ -1963,7 +1946,7 @@
         <td>3.58</td>
         <td>2.54</td>
         <td>6.17</td>
-        <td>37.0</td>
+        <td>36.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Communication Services" data-quality="GREAT" data-risk="SAFE" data-composite="36.93">
@@ -1978,7 +1961,7 @@
         <td>-8.66</td>
         <td>-9.7</td>
         <td>11.03</td>
-        <td>45.0</td>
+        <td>44.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Industrials" data-quality="OK" data-risk="SAFE" data-composite="36.76">
@@ -1993,7 +1976,7 @@
         <td>-1.89</td>
         <td>-2.94</td>
         <td>8.56</td>
-        <td>45.0</td>
+        <td>44.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Consumer Discretionary" data-quality="OK" data-risk="SAFE" data-composite="36.59">
@@ -2008,7 +1991,7 @@
         <td>10.4</td>
         <td>9.35</td>
         <td>8.43</td>
-        <td>-18.0</td>
+        <td>-19.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Utilities" data-quality="OK" data-risk="WATCH" data-composite="36.35">
@@ -2023,7 +2006,7 @@
         <td>-0.43</td>
         <td>-1.47</td>
         <td>3.39</td>
-        <td>59.0</td>
+        <td>58.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Communication Services" data-quality="OK" data-risk="SAFE" data-composite="35.71">
@@ -2038,7 +2021,7 @@
         <td>8.05</td>
         <td>7.01</td>
         <td>10.36</td>
-        <td>58.0</td>
+        <td>57.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Consumer Staples" data-quality="OK" data-risk="WATCH" data-composite="35.62">
@@ -2053,7 +2036,7 @@
         <td>-0.59</td>
         <td>-1.63</td>
         <td>5.98</td>
-        <td>72.0</td>
+        <td>71.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Materials" data-quality="OK" data-risk="SAFE" data-composite="35.53">
@@ -2068,7 +2051,7 @@
         <td>-1.79</td>
         <td>-2.83</td>
         <td>11.54</td>
-        <td>44.0</td>
+        <td>43.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Health Care" data-quality="GREAT" data-risk="SAFE" data-composite="35.38">
@@ -2083,7 +2066,7 @@
         <td>4.23</td>
         <td>3.18</td>
         <td>12.79</td>
-        <td>56.0</td>
+        <td>55.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Health Care" data-quality="OK" data-risk="SAFE" data-composite="35.06">
@@ -2098,7 +2081,7 @@
         <td>3.34</td>
         <td>2.29</td>
         <td>7.23</td>
-        <td>43.0</td>
+        <td>42.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Industrials" data-quality="OK" data-risk="SAFE" data-composite="35.05">
@@ -2113,7 +2096,7 @@
         <td>-0.68</td>
         <td>-1.72</td>
         <td>7.27</td>
-        <td>72.0</td>
+        <td>71.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Materials" data-quality="OK" data-risk="SAFE" data-composite="35.0">
@@ -2128,7 +2111,7 @@
         <td>4.31</td>
         <td>3.26</td>
         <td>14.36</td>
-        <td>50.0</td>
+        <td>49.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="GOOD" data-risk="WATCH" data-composite="34.99">
@@ -2143,7 +2126,7 @@
         <td>-6.61</td>
         <td>-7.65</td>
         <td>10.42</td>
-        <td>71.0</td>
+        <td>70.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Industrials" data-quality="GOOD" data-risk="WATCH" data-composite="34.94">
@@ -2158,7 +2141,7 @@
         <td>-3.74</td>
         <td>-4.78</td>
         <td>7.09</td>
-        <td>52.0</td>
+        <td>51.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Industrials" data-quality="OK" data-risk="WATCH" data-composite="34.93">
@@ -2173,7 +2156,7 @@
         <td>-2.12</td>
         <td>-3.17</td>
         <td>5.76</td>
-        <td>45.0</td>
+        <td>44.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Utilities" data-quality="OK" data-risk="WATCH" data-composite="34.92">
@@ -2188,7 +2171,7 @@
         <td>-0.51</td>
         <td>-1.55</td>
         <td>6.2</td>
-        <td>51.0</td>
+        <td>50.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Health Care" data-quality="OK" data-risk="SAFE" data-composite="34.84">
@@ -2203,7 +2186,7 @@
         <td>3.67</td>
         <td>2.62</td>
         <td>12.27</td>
-        <td>51.0</td>
+        <td>50.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Health Care" data-quality="GOOD" data-risk="SAFE" data-composite="34.82">
@@ -2218,7 +2201,7 @@
         <td>25.79</td>
         <td>24.75</td>
         <td>14.85</td>
-        <td>51.0</td>
+        <td>50.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Financials" data-quality="GOOD" data-risk="WATCH" data-composite="34.6">
@@ -2233,7 +2216,7 @@
         <td>0.19</td>
         <td>-0.86</td>
         <td>6.61</td>
-        <td>50.0</td>
+        <td>49.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="OK" data-risk="SAFE" data-composite="34.45">
@@ -2248,7 +2231,7 @@
         <td>2.05</td>
         <td>1.0</td>
         <td>9.3</td>
-        <td>45.0</td>
+        <td>44.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Consumer Discretionary" data-quality="OK" data-risk="WATCH" data-composite="34.15">
@@ -2263,23 +2246,8 @@
         <td>8.26</td>
         <td>7.22</td>
         <td>12.53</td>
-        <td>-32.0</td>
+        <td>-33.0</td>
         <td>BELOW_SMA50</td>
-      </tr>
-      <tr data-sector="Financials" data-quality="OK" data-risk="SAFE" data-composite="34.09">
-        <td><strong>TFC</strong></td>
-        <td>Truist Financial</td>
-        <td>Financials</td>
-        <td>48.83</td>
-        <td><strong>34.09</strong></td>
-        <td><span class="badge badge-ok">OK</span></td>
-        <td><span class="badge badge-safe">SAFE</span></td>
-        <td>75</td>
-        <td>-0.79</td>
-        <td>-1.84</td>
-        <td>11.3</td>
-        <td>39.0</td>
-        <td>CLEAR</td>
       </tr>
       <tr data-sector="Industrials" data-quality="OK" data-risk="SAFE" data-composite="34.09">
         <td><strong>TXT</strong></td>
@@ -2293,7 +2261,22 @@
         <td>-0.17</td>
         <td>-1.22</td>
         <td>9.97</td>
-        <td>45.0</td>
+        <td>44.0</td>
+        <td>CLEAR</td>
+      </tr>
+      <tr data-sector="Financials" data-quality="OK" data-risk="SAFE" data-composite="34.09">
+        <td><strong>TFC</strong></td>
+        <td>Truist Financial</td>
+        <td>Financials</td>
+        <td>48.83</td>
+        <td><strong>34.09</strong></td>
+        <td><span class="badge badge-ok">OK</span></td>
+        <td><span class="badge badge-safe">SAFE</span></td>
+        <td>75</td>
+        <td>-0.79</td>
+        <td>-1.84</td>
+        <td>11.3</td>
+        <td>38.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Industrials" data-quality="OK" data-risk="SAFE" data-composite="33.98">
@@ -2308,7 +2291,7 @@
         <td>-1.98</td>
         <td>-3.03</td>
         <td>7.37</td>
-        <td>44.0</td>
+        <td>43.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Consumer Staples" data-quality="OK" data-risk="SAFE" data-composite="33.89">
@@ -2323,7 +2306,7 @@
         <td>0.47</td>
         <td>-0.57</td>
         <td>11.16</td>
-        <td>50.0</td>
+        <td>49.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Real Estate" data-quality="OK" data-risk="SAFE" data-composite="33.7">
@@ -2338,7 +2321,7 @@
         <td>2.43</td>
         <td>1.38</td>
         <td>11.77</td>
-        <td>45.0</td>
+        <td>44.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Consumer Discretionary" data-quality="OK" data-risk="WATCH" data-composite="33.62">
@@ -2353,7 +2336,7 @@
         <td>-4.29</td>
         <td>-5.34</td>
         <td>8.71</td>
-        <td>58.0</td>
+        <td>57.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Utilities" data-quality="OK" data-risk="WATCH" data-composite="33.56">
@@ -2368,7 +2351,7 @@
         <td>-1.49</td>
         <td>-2.53</td>
         <td>7.3</td>
-        <td>52.0</td>
+        <td>51.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Industrials" data-quality="OK" data-risk="WATCH" data-composite="33.55">
@@ -2383,7 +2366,7 @@
         <td>-2.1</td>
         <td>-3.14</td>
         <td>8.64</td>
-        <td>51.0</td>
+        <td>50.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Industrials" data-quality="GOOD" data-risk="WATCH" data-composite="33.54">
@@ -2398,7 +2381,7 @@
         <td>-9.5</td>
         <td>-10.54</td>
         <td>12.14</td>
-        <td>59.0</td>
+        <td>58.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Utilities" data-quality="OK" data-risk="SAFE" data-composite="33.2">
@@ -2413,7 +2396,7 @@
         <td>7.41</td>
         <td>6.37</td>
         <td>4.06</td>
-        <td>52.0</td>
+        <td>51.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Industrials" data-quality="OK" data-risk="SAFE" data-composite="32.91">
@@ -2428,22 +2411,7 @@
         <td>4.17</td>
         <td>3.12</td>
         <td>9.68</td>
-        <td>43.0</td>
-        <td>CLEAR</td>
-      </tr>
-      <tr data-sector="Real Estate" data-quality="OK" data-risk="SAFE" data-composite="32.85">
-        <td><strong>INVH</strong></td>
-        <td>Invitation Homes</td>
-        <td>Real Estate</td>
-        <td>29.38</td>
-        <td><strong>32.85</strong></td>
-        <td><span class="badge badge-ok">OK</span></td>
-        <td><span class="badge badge-safe">SAFE</span></td>
-        <td>78</td>
-        <td>1.42</td>
-        <td>0.37</td>
-        <td>10.54</td>
-        <td>51.0</td>
+        <td>42.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Health Care" data-quality="OK" data-risk="SAFE" data-composite="32.85">
@@ -2458,23 +2426,38 @@
         <td>2.55</td>
         <td>1.51</td>
         <td>12.65</td>
-        <td>52.0</td>
+        <td>51.0</td>
         <td>CLEAR</td>
       </tr>
-      <tr data-sector="Utilities" data-quality="OK" data-risk="WATCH" data-composite="32.84">
+      <tr data-sector="Utilities" data-quality="OK" data-risk="WATCH" data-composite="32.85">
         <td><strong>AEP</strong></td>
         <td>American Electric Power</td>
         <td>Utilities</td>
         <td>126.77</td>
-        <td><strong>32.84</strong></td>
+        <td><strong>32.85</strong></td>
         <td><span class="badge badge-ok">OK</span></td>
         <td><span class="badge badge-watch">WATCH</span></td>
         <td>56</td>
         <td>-3.09</td>
         <td>-4.13</td>
-        <td>8.43</td>
-        <td>52.0</td>
+        <td>8.42</td>
+        <td>51.0</td>
         <td>BELOW_SMA50</td>
+      </tr>
+      <tr data-sector="Real Estate" data-quality="OK" data-risk="SAFE" data-composite="32.85">
+        <td><strong>INVH</strong></td>
+        <td>Invitation Homes</td>
+        <td>Real Estate</td>
+        <td>29.38</td>
+        <td><strong>32.85</strong></td>
+        <td><span class="badge badge-ok">OK</span></td>
+        <td><span class="badge badge-safe">SAFE</span></td>
+        <td>78</td>
+        <td>1.42</td>
+        <td>0.37</td>
+        <td>10.54</td>
+        <td>50.0</td>
+        <td>CLEAR</td>
       </tr>
       <tr data-sector="Financials" data-quality="OK" data-risk="SAFE" data-composite="32.81">
         <td><strong>USB</strong></td>
@@ -2488,7 +2471,7 @@
         <td>0.07</td>
         <td>-0.97</td>
         <td>8.6</td>
-        <td>38.0</td>
+        <td>37.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="GOOD" data-risk="WATCH" data-composite="32.8">
@@ -2503,7 +2486,7 @@
         <td>-2.92</td>
         <td>-3.96</td>
         <td>11.68</td>
-        <td>44.0</td>
+        <td>43.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Energy" data-quality="OK" data-risk="SAFE" data-composite="32.75">
@@ -2518,7 +2501,7 @@
         <td>2.66</td>
         <td>1.61</td>
         <td>8.24</td>
-        <td>-41.0</td>
+        <td>-42.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Utilities" data-quality="OK" data-risk="WATCH" data-composite="32.65">
@@ -2533,7 +2516,7 @@
         <td>-3.49</td>
         <td>-4.53</td>
         <td>8.72</td>
-        <td>52.0</td>
+        <td>51.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Consumer Staples" data-quality="OK" data-risk="SAFE" data-composite="32.48">
@@ -2548,7 +2531,7 @@
         <td>7.82</td>
         <td>6.77</td>
         <td>12.17</td>
-        <td>45.0</td>
+        <td>44.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Financials" data-quality="OK" data-risk="SAFE" data-composite="32.47">
@@ -2563,7 +2546,7 @@
         <td>5.24</td>
         <td>4.2</td>
         <td>5.55</td>
-        <td>37.0</td>
+        <td>36.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Industrials" data-quality="OK" data-risk="SAFE" data-composite="32.37">
@@ -2578,7 +2561,7 @@
         <td>-1.03</td>
         <td>-2.08</td>
         <td>15.13</td>
-        <td>58.0</td>
+        <td>57.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Health Care" data-quality="GOOD" data-risk="WATCH" data-composite="32.31">
@@ -2593,7 +2576,7 @@
         <td>2.17</td>
         <td>1.13</td>
         <td>17.4</td>
-        <td>51.0</td>
+        <td>50.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Consumer Staples" data-quality="OK" data-risk="SAFE" data-composite="32.19">
@@ -2608,7 +2591,7 @@
         <td>2.89</td>
         <td>1.85</td>
         <td>8.8</td>
-        <td>44.0</td>
+        <td>43.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Communication Services" data-quality="OK" data-risk="SAFE" data-composite="31.97">
@@ -2623,7 +2606,7 @@
         <td>6.8</td>
         <td>5.75</td>
         <td>11.02</td>
-        <td>58.0</td>
+        <td>57.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Health Care" data-quality="OK" data-risk="SAFE" data-composite="31.86">
@@ -2638,7 +2621,7 @@
         <td>5.85</td>
         <td>4.81</td>
         <td>10.98</td>
-        <td>57.0</td>
+        <td>56.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Financials" data-quality="GOOD" data-risk="WATCH" data-composite="31.76">
@@ -2653,7 +2636,7 @@
         <td>-0.74</td>
         <td>-1.78</td>
         <td>4.89</td>
-        <td>38.0</td>
+        <td>37.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Financials" data-quality="OK" data-risk="WATCH" data-composite="31.74">
@@ -2668,7 +2651,7 @@
         <td>1.55</td>
         <td>0.51</td>
         <td>7.67</td>
-        <td>56.0</td>
+        <td>55.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Consumer Discretionary" data-quality="OK" data-risk="RISKY" data-composite="31.48">
@@ -2683,7 +2666,7 @@
         <td>0.63</td>
         <td>-0.41</td>
         <td>19.78</td>
-        <td>16.0</td>
+        <td>15.0</td>
         <td>BELOW_SMA200|HIGH_BETA</td>
       </tr>
       <tr data-sector="Utilities" data-quality="OK" data-risk="WATCH" data-composite="31.43">
@@ -2698,7 +2681,7 @@
         <td>-1.14</td>
         <td>-2.18</td>
         <td>9.51</td>
-        <td>59.0</td>
+        <td>58.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Industrials" data-quality="GOOD" data-risk="WATCH" data-composite="31.16">
@@ -2713,7 +2696,7 @@
         <td>-1.33</td>
         <td>-2.37</td>
         <td>13.97</td>
-        <td>50.0</td>
+        <td>49.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Energy" data-quality="OK" data-risk="WATCH" data-composite="31.12">
@@ -2728,7 +2711,7 @@
         <td>4.26</td>
         <td>3.22</td>
         <td>11.85</td>
-        <td>59.0</td>
+        <td>58.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Materials" data-quality="OK" data-risk="WATCH" data-composite="30.84">
@@ -2743,7 +2726,7 @@
         <td>-3.84</td>
         <td>-4.89</td>
         <td>11.2</td>
-        <td>52.0</td>
+        <td>51.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Materials" data-quality="GREAT" data-risk="WATCH" data-composite="30.7">
@@ -2758,7 +2741,7 @@
         <td>-7.4</td>
         <td>-8.45</td>
         <td>22.58</td>
-        <td>58.0</td>
+        <td>57.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Energy" data-quality="OK" data-risk="WATCH" data-composite="30.64">
@@ -2773,7 +2756,7 @@
         <td>-1.86</td>
         <td>-2.91</td>
         <td>10.6</td>
-        <td>56.0</td>
+        <td>55.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Utilities" data-quality="OK" data-risk="WATCH" data-composite="30.61">
@@ -2788,7 +2771,7 @@
         <td>-0.43</td>
         <td>-1.47</td>
         <td>7.57</td>
-        <td>52.0</td>
+        <td>51.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Real Estate" data-quality="OK" data-risk="WATCH" data-composite="30.51">
@@ -2803,7 +2786,7 @@
         <td>-5.76</td>
         <td>-6.81</td>
         <td>9.78</td>
-        <td>49.0</td>
+        <td>48.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Consumer Staples" data-quality="OK" data-risk="WATCH" data-composite="30.21">
@@ -2818,7 +2801,7 @@
         <td>-3.69</td>
         <td>-4.73</td>
         <td>11.1</td>
-        <td>-11.0</td>
+        <td>-12.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Real Estate" data-quality="OK" data-risk="WATCH" data-composite="30.21">
@@ -2833,7 +2816,7 @@
         <td>-7.92</td>
         <td>-8.96</td>
         <td>15.77</td>
-        <td>-40.0</td>
+        <td>-41.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Financials" data-quality="GOOD" data-risk="SAFE" data-composite="30.18">
@@ -2848,7 +2831,7 @@
         <td>1.8</td>
         <td>0.75</td>
         <td>7.25</td>
-        <td>53.0</td>
+        <td>52.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Consumer Discretionary" data-quality="GOOD" data-risk="WATCH" data-composite="29.89">
@@ -2863,7 +2846,7 @@
         <td>-9.57</td>
         <td>-10.61</td>
         <td>11.97</td>
-        <td>52.0</td>
+        <td>51.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Utilities" data-quality="OK" data-risk="RISKY" data-composite="29.84">
@@ -2878,7 +2861,7 @@
         <td>1.2</td>
         <td>0.15</td>
         <td>11.77</td>
-        <td>-41.0</td>
+        <td>-42.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Consumer Staples" data-quality="OK" data-risk="SAFE" data-composite="29.82">
@@ -2893,7 +2876,7 @@
         <td>1.89</td>
         <td>0.85</td>
         <td>9.79</td>
-        <td>53.0</td>
+        <td>52.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Health Care" data-quality="OK" data-risk="WATCH" data-composite="29.4">
@@ -2908,7 +2891,7 @@
         <td>-1.21</td>
         <td>-2.25</td>
         <td>10.72</td>
-        <td>52.0</td>
+        <td>51.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Energy" data-quality="OK" data-risk="WATCH" data-composite="29.13">
@@ -2923,7 +2906,7 @@
         <td>6.56</td>
         <td>5.52</td>
         <td>14.78</td>
-        <td>58.0</td>
+        <td>57.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="GOOD" data-risk="SAFE" data-composite="29.07">
@@ -2938,7 +2921,7 @@
         <td>28.78</td>
         <td>27.74</td>
         <td>18.16</td>
-        <td>59.0</td>
+        <td>58.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Consumer Staples" data-quality="OK" data-risk="WATCH" data-composite="28.98">
@@ -2953,7 +2936,7 @@
         <td>-7.79</td>
         <td>-8.83</td>
         <td>11.34</td>
-        <td>73.0</td>
+        <td>72.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Real Estate" data-quality="OK" data-risk="WATCH" data-composite="28.87">
@@ -2968,7 +2951,7 @@
         <td>-6.48</td>
         <td>-7.53</td>
         <td>12.49</td>
-        <td>45.0</td>
+        <td>44.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Industrials" data-quality="OK" data-risk="SAFE" data-composite="28.77">
@@ -2983,7 +2966,7 @@
         <td>-3.67</td>
         <td>-4.72</td>
         <td>12.13</td>
-        <td>-47.0</td>
+        <td>-48.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Utilities" data-quality="OK" data-risk="WATCH" data-composite="28.69">
@@ -2998,7 +2981,7 @@
         <td>-2.49</td>
         <td>-3.53</td>
         <td>6.39</td>
-        <td>58.0</td>
+        <td>57.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Financials" data-quality="OK" data-risk="WATCH" data-composite="28.68">
@@ -3013,7 +2996,7 @@
         <td>0.12</td>
         <td>-0.92</td>
         <td>6.35</td>
-        <td>49.0</td>
+        <td>48.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Materials" data-quality="OK" data-risk="WATCH" data-composite="28.23">
@@ -3028,7 +3011,7 @@
         <td>-6.18</td>
         <td>-7.22</td>
         <td>10.13</td>
-        <td>52.0</td>
+        <td>51.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Real Estate" data-quality="OK" data-risk="WATCH" data-composite="28.0">
@@ -3043,7 +3026,7 @@
         <td>-0.39</td>
         <td>-1.43</td>
         <td>5.02</td>
-        <td>51.0</td>
+        <td>50.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Communication Services" data-quality="OK" data-risk="SAFE" data-composite="27.78">
@@ -3058,7 +3041,7 @@
         <td>7.58</td>
         <td>6.53</td>
         <td>11.29</td>
-        <td>58.0</td>
+        <td>57.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Real Estate" data-quality="OK" data-risk="SAFE" data-composite="27.73">
@@ -3073,7 +3056,7 @@
         <td>5.19</td>
         <td>4.15</td>
         <td>16.98</td>
-        <td>50.0</td>
+        <td>49.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Communication Services" data-quality="OK" data-risk="SAFE" data-composite="27.66">
@@ -3088,7 +3071,7 @@
         <td>0.07</td>
         <td>-0.97</td>
         <td>14.04</td>
-        <td>57.0</td>
+        <td>56.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Financials" data-quality="OK" data-risk="WATCH" data-composite="27.36">
@@ -3103,7 +3086,7 @@
         <td>-7.2</td>
         <td>-8.24</td>
         <td>19.25</td>
-        <td>44.0</td>
+        <td>43.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Consumer Discretionary" data-quality="OK" data-risk="WATCH" data-composite="27.18">
@@ -3118,7 +3101,7 @@
         <td>-8.52</td>
         <td>-9.56</td>
         <td>12.41</td>
-        <td>50.0</td>
+        <td>49.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Health Care" data-quality="GOOD" data-risk="SAFE" data-composite="27.18">
@@ -3133,7 +3116,7 @@
         <td>11.83</td>
         <td>10.79</td>
         <td>16.87</td>
-        <td>79.0</td>
+        <td>78.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Industrials" data-quality="OK" data-risk="WATCH" data-composite="26.99">
@@ -3148,7 +3131,7 @@
         <td>-0.19</td>
         <td>-1.24</td>
         <td>14.48</td>
-        <td>59.0</td>
+        <td>58.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Energy" data-quality="GOOD" data-risk="WATCH" data-composite="26.97">
@@ -3163,7 +3146,7 @@
         <td>-0.73</td>
         <td>-1.77</td>
         <td>10.09</td>
-        <td>37.0</td>
+        <td>36.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Energy" data-quality="OK" data-risk="WATCH" data-composite="26.94">
@@ -3178,7 +3161,7 @@
         <td>4.23</td>
         <td>3.19</td>
         <td>13.39</td>
-        <td>53.0</td>
+        <td>52.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Communication Services" data-quality="OK" data-risk="WATCH" data-composite="26.87">
@@ -3193,7 +3176,7 @@
         <td>-3.5</td>
         <td>-4.55</td>
         <td>10.74</td>
-        <td>43.0</td>
+        <td>42.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Health Care" data-quality="GOOD" data-risk="WATCH" data-composite="26.54">
@@ -3208,7 +3191,7 @@
         <td>-4.45</td>
         <td>-5.49</td>
         <td>18.09</td>
-        <td>59.0</td>
+        <td>58.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Financials" data-quality="GOOD" data-risk="RISKY" data-composite="26.42">
@@ -3223,7 +3206,7 @@
         <td>0.33</td>
         <td>-0.71</td>
         <td>15.25</td>
-        <td>42.0</td>
+        <td>41.0</td>
         <td>BELOW_SMA200</td>
       </tr>
       <tr data-sector="Materials" data-quality="OK" data-risk="WATCH" data-composite="26.36">
@@ -3238,7 +3221,7 @@
         <td>-7.23</td>
         <td>-8.28</td>
         <td>13.52</td>
-        <td>57.0</td>
+        <td>56.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Consumer Discretionary" data-quality="GOOD" data-risk="WATCH" data-composite="26.1">
@@ -3253,7 +3236,7 @@
         <td>-2.76</td>
         <td>-3.8</td>
         <td>13.94</td>
-        <td>51.0</td>
+        <td>50.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Real Estate" data-quality="OK" data-risk="SAFE" data-composite="25.85">
@@ -3268,7 +3251,7 @@
         <td>0.79</td>
         <td>-0.25</td>
         <td>17.85</td>
-        <td>44.0</td>
+        <td>43.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Health Care" data-quality="OK" data-risk="WATCH" data-composite="25.77">
@@ -3283,7 +3266,7 @@
         <td>-1.65</td>
         <td>-2.69</td>
         <td>9.41</td>
-        <td>51.0</td>
+        <td>50.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Health Care" data-quality="OK" data-risk="SAFE" data-composite="25.39">
@@ -3298,7 +3281,7 @@
         <td>10.71</td>
         <td>9.66</td>
         <td>12.59</td>
-        <td>57.0</td>
+        <td>56.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Real Estate" data-quality="OK" data-risk="SAFE" data-composite="25.39">
@@ -3313,7 +3296,7 @@
         <td>8.53</td>
         <td>7.48</td>
         <td>15.92</td>
-        <td>50.0</td>
+        <td>49.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Industrials" data-quality="OK" data-risk="SAFE" data-composite="25.21">
@@ -3328,7 +3311,7 @@
         <td>0.43</td>
         <td>-0.62</td>
         <td>2.61</td>
-        <td>51.0</td>
+        <td>50.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Financials" data-quality="OK" data-risk="RISKY" data-composite="25.16">
@@ -3343,7 +3326,7 @@
         <td>-3.05</td>
         <td>-4.09</td>
         <td>14.61</td>
-        <td>-39.0</td>
+        <td>-40.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Real Estate" data-quality="OK" data-risk="WATCH" data-composite="24.76">
@@ -3358,7 +3341,7 @@
         <td>-2.45</td>
         <td>-3.5</td>
         <td>10.5</td>
-        <td>56.0</td>
+        <td>55.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Financials" data-quality="GOOD" data-risk="RISKY" data-composite="24.64">
@@ -3373,7 +3356,7 @@
         <td>-5.91</td>
         <td>-6.96</td>
         <td>9.0</td>
-        <td>51.0</td>
+        <td>50.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="GOOD" data-risk="RISKY" data-composite="24.57">
@@ -3388,7 +3371,7 @@
         <td>-1.74</td>
         <td>-2.78</td>
         <td>18.28</td>
-        <td>44.0</td>
+        <td>43.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Utilities" data-quality="OK" data-risk="WATCH" data-composite="24.48">
@@ -3403,7 +3386,7 @@
         <td>2.78</td>
         <td>1.73</td>
         <td>8.87</td>
-        <td>52.0</td>
+        <td>51.0</td>
         <td>BELOW_SMA50</td>
       </tr>
       <tr data-sector="Financials" data-quality="GOOD" data-risk="RISKY" data-composite="23.66">
@@ -3418,7 +3401,7 @@
         <td>-3.37</td>
         <td>-4.41</td>
         <td>10.91</td>
-        <td>-46.0</td>
+        <td>-47.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Industrials" data-quality="OK" data-risk="SAFE" data-composite="23.44">
@@ -3433,7 +3416,7 @@
         <td>-2.5</td>
         <td>-3.54</td>
         <td>24.92</td>
-        <td>51.0</td>
+        <td>50.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Utilities" data-quality="GOOD" data-risk="RISKY" data-composite="23.43">
@@ -3448,7 +3431,7 @@
         <td>-0.12</td>
         <td>-1.16</td>
         <td>12.76</td>
-        <td>57.0</td>
+        <td>56.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Consumer Staples" data-quality="GOOD" data-risk="RISKY" data-composite="23.0">
@@ -3463,7 +3446,7 @@
         <td>-0.66</td>
         <td>-1.7</td>
         <td>12.59</td>
-        <td>51.0</td>
+        <td>50.0</td>
         <td>BELOW_SMA200</td>
       </tr>
       <tr data-sector="Financials" data-quality="GREAT" data-risk="RISKY" data-composite="22.9">
@@ -3478,7 +3461,7 @@
         <td>-0.3</td>
         <td>-1.34</td>
         <td>14.2</td>
-        <td>50.0</td>
+        <td>49.0</td>
         <td>BELOW_SMA200</td>
       </tr>
       <tr data-sector="Utilities" data-quality="OK" data-risk="RISKY" data-composite="22.66">
@@ -3493,7 +3476,7 @@
         <td>-3.86</td>
         <td>-4.91</td>
         <td>11.85</td>
-        <td>52.0</td>
+        <td>51.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Communication Services" data-quality="GOOD" data-risk="SAFE" data-composite="22.51">
@@ -3508,7 +3491,7 @@
         <td>1.27</td>
         <td>0.22</td>
         <td>0.64</td>
-        <td>50.0</td>
+        <td>49.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Utilities" data-quality="OK" data-risk="RISKY" data-composite="22.48">
@@ -3523,7 +3506,7 @@
         <td>-1.41</td>
         <td>-2.46</td>
         <td>8.47</td>
-        <td>57.0</td>
+        <td>56.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Financials" data-quality="GOOD" data-risk="RISKY" data-composite="22.07">
@@ -3538,7 +3521,7 @@
         <td>3.91</td>
         <td>2.87</td>
         <td>13.7</td>
-        <td>46.0</td>
+        <td>45.0</td>
         <td>BELOW_SMA200</td>
       </tr>
       <tr data-sector="Utilities" data-quality="GOOD" data-risk="RISKY" data-composite="21.81">
@@ -3553,7 +3536,7 @@
         <td>-9.32</td>
         <td>-10.36</td>
         <td>14.3</td>
-        <td>44.0</td>
+        <td>43.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Financials" data-quality="GOOD" data-risk="RISKY" data-composite="21.43">
@@ -3568,7 +3551,7 @@
         <td>-2.49</td>
         <td>-3.54</td>
         <td>14.47</td>
-        <td>45.0</td>
+        <td>44.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Utilities" data-quality="OK" data-risk="RISKY" data-composite="21.38">
@@ -3583,7 +3566,7 @@
         <td>-3.38</td>
         <td>-4.42</td>
         <td>11.07</td>
-        <td>-41.0</td>
+        <td>-42.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Utilities" data-quality="OK" data-risk="RISKY" data-composite="21.16">
@@ -3598,7 +3581,7 @@
         <td>1.82</td>
         <td>0.77</td>
         <td>10.72</td>
-        <td>52.0</td>
+        <td>51.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Consumer Staples" data-quality="OK" data-risk="RISKY" data-composite="21.11">
@@ -3613,22 +3596,7 @@
         <td>0.56</td>
         <td>-0.48</td>
         <td>14.63</td>
-        <td>51.0</td>
-        <td>BELOW_SMA200</td>
-      </tr>
-      <tr data-sector="Health Care" data-quality="OK" data-risk="RISKY" data-composite="21.11">
-        <td><strong>LH</strong></td>
-        <td>Labcorp</td>
-        <td>Health Care</td>
-        <td>262.01</td>
-        <td><strong>21.11</strong></td>
-        <td><span class="badge badge-ok">OK</span></td>
-        <td><span class="badge badge-risky">RISKY</span></td>
-        <td>52</td>
-        <td>1.81</td>
-        <td>0.77</td>
-        <td>10.09</td>
-        <td>45.0</td>
+        <td>50.0</td>
         <td>BELOW_SMA200</td>
       </tr>
       <tr data-sector="Financials" data-quality="GOOD" data-risk="RISKY" data-composite="21.11">
@@ -3643,8 +3611,23 @@
         <td>-2.18</td>
         <td>-3.22</td>
         <td>14.61</td>
-        <td>44.0</td>
+        <td>43.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
+      </tr>
+      <tr data-sector="Health Care" data-quality="OK" data-risk="RISKY" data-composite="21.11">
+        <td><strong>LH</strong></td>
+        <td>Labcorp</td>
+        <td>Health Care</td>
+        <td>262.01</td>
+        <td><strong>21.11</strong></td>
+        <td><span class="badge badge-ok">OK</span></td>
+        <td><span class="badge badge-risky">RISKY</span></td>
+        <td>52</td>
+        <td>1.81</td>
+        <td>0.77</td>
+        <td>10.09</td>
+        <td>44.0</td>
+        <td>BELOW_SMA200</td>
       </tr>
       <tr data-sector="Consumer Staples" data-quality="OK" data-risk="SAFE" data-composite="20.41">
         <td><strong>HRL</strong></td>
@@ -3658,7 +3641,7 @@
         <td>13.93</td>
         <td>12.88</td>
         <td>22.08</td>
-        <td>80.0</td>
+        <td>79.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Financials" data-quality="GOOD" data-risk="RISKY" data-composite="20.4">
@@ -3673,7 +3656,7 @@
         <td>-1.23</td>
         <td>-2.28</td>
         <td>17.5</td>
-        <td>38.0</td>
+        <td>37.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Consumer Discretionary" data-quality="OK" data-risk="RISKY" data-composite="20.22">
@@ -3688,7 +3671,7 @@
         <td>0.76</td>
         <td>-0.28</td>
         <td>18.36</td>
-        <td>44.0</td>
+        <td>43.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Consumer Discretionary" data-quality="GOOD" data-risk="RISKY" data-composite="20.1">
@@ -3703,7 +3686,7 @@
         <td>-2.66</td>
         <td>-3.7</td>
         <td>24.52</td>
-        <td>50.0</td>
+        <td>49.0</td>
         <td>BELOW_SMA200</td>
       </tr>
       <tr data-sector="Financials" data-quality="OK" data-risk="RISKY" data-composite="19.84">
@@ -3718,7 +3701,7 @@
         <td>2.86</td>
         <td>1.81</td>
         <td>16.3</td>
-        <td>36.0</td>
+        <td>35.0</td>
         <td>BELOW_SMA200</td>
       </tr>
       <tr data-sector="Financials" data-quality="GREAT" data-risk="RISKY" data-composite="19.83">
@@ -3733,7 +3716,7 @@
         <td>-2.06</td>
         <td>-3.11</td>
         <td>17.78</td>
-        <td>45.0</td>
+        <td>44.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Consumer Discretionary" data-quality="GOOD" data-risk="RISKY" data-composite="19.69">
@@ -3748,7 +3731,7 @@
         <td>-5.82</td>
         <td>-6.87</td>
         <td>12.58</td>
-        <td>52.0</td>
+        <td>51.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Utilities" data-quality="OK" data-risk="RISKY" data-composite="19.43">
@@ -3761,9 +3744,9 @@
         <td><span class="badge badge-risky">RISKY</span></td>
         <td>24</td>
         <td>-7.16</td>
-        <td>-8.2</td>
+        <td>-8.21</td>
         <td>12.3</td>
-        <td>58.0</td>
+        <td>57.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Financials" data-quality="GOOD" data-risk="RISKY" data-composite="19.42">
@@ -3778,7 +3761,7 @@
         <td>-6.31</td>
         <td>-7.35</td>
         <td>17.14</td>
-        <td>37.0</td>
+        <td>36.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Industrials" data-quality="OK" data-risk="RISKY" data-composite="19.26">
@@ -3793,22 +3776,22 @@
         <td>-1.97</td>
         <td>-3.02</td>
         <td>12.17</td>
-        <td>49.0</td>
+        <td>48.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
-      <tr data-sector="Utilities" data-quality="OK" data-risk="RISKY" data-composite="19.01">
+      <tr data-sector="Utilities" data-quality="OK" data-risk="RISKY" data-composite="19.0">
         <td><strong>AWK</strong></td>
         <td>American Water Works</td>
         <td>Utilities</td>
         <td>122.49</td>
-        <td><strong>19.01</strong></td>
+        <td><strong>19.0</strong></td>
         <td><span class="badge badge-ok">OK</span></td>
         <td><span class="badge badge-risky">RISKY</span></td>
         <td>30</td>
-        <td>-2.25</td>
+        <td>-2.24</td>
         <td>-3.29</td>
-        <td>15.46</td>
-        <td>51.0</td>
+        <td>15.47</td>
+        <td>50.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Financials" data-quality="OK" data-risk="RISKY" data-composite="18.85">
@@ -3823,7 +3806,7 @@
         <td>-2.69</td>
         <td>-3.73</td>
         <td>18.49</td>
-        <td>45.0</td>
+        <td>44.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Consumer Staples" data-quality="OK" data-risk="RISKY" data-composite="18.71">
@@ -3838,7 +3821,7 @@
         <td>-6.26</td>
         <td>-7.3</td>
         <td>18.79</td>
-        <td>22.0</td>
+        <td>21.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Consumer Discretionary" data-quality="OK" data-risk="RISKY" data-composite="18.7">
@@ -3853,7 +3836,7 @@
         <td>-1.16</td>
         <td>-2.2</td>
         <td>21.12</td>
-        <td>43.0</td>
+        <td>42.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Materials" data-quality="OK" data-risk="RISKY" data-composite="18.56">
@@ -3868,7 +3851,7 @@
         <td>0.34</td>
         <td>-0.71</td>
         <td>16.54</td>
-        <td>50.0</td>
+        <td>49.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Financials" data-quality="GOOD" data-risk="RISKY" data-composite="18.36">
@@ -3883,7 +3866,7 @@
         <td>-3.05</td>
         <td>-4.09</td>
         <td>18.93</td>
-        <td>52.0</td>
+        <td>51.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Real Estate" data-quality="OK" data-risk="SAFE" data-composite="18.33">
@@ -3898,7 +3881,7 @@
         <td>4.55</td>
         <td>3.5</td>
         <td>4.17</td>
-        <td>51.0</td>
+        <td>50.0</td>
         <td>CLEAR</td>
       </tr>
       <tr data-sector="Materials" data-quality="OK" data-risk="RISKY" data-composite="18.24">
@@ -3913,7 +3896,7 @@
         <td>-9.53</td>
         <td>-10.57</td>
         <td>22.26</td>
-        <td>52.0</td>
+        <td>51.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Consumer Discretionary" data-quality="OK" data-risk="RISKY" data-composite="18.05">
@@ -3928,7 +3911,7 @@
         <td>-1.42</td>
         <td>-2.47</td>
         <td>17.71</td>
-        <td>59.0</td>
+        <td>58.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Materials" data-quality="GOOD" data-risk="RISKY" data-composite="17.86">
@@ -3943,7 +3926,7 @@
         <td>-7.61</td>
         <td>-8.66</td>
         <td>21.87</td>
-        <td>-39.0</td>
+        <td>-40.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Consumer Staples" data-quality="OK" data-risk="RISKY" data-composite="17.73">
@@ -3958,7 +3941,7 @@
         <td>11.3</td>
         <td>10.25</td>
         <td>24.38</td>
-        <td>-11.0</td>
+        <td>-12.0</td>
         <td>BELOW_SMA200</td>
       </tr>
       <tr data-sector="Industrials" data-quality="OK" data-risk="RISKY" data-composite="17.66">
@@ -3973,7 +3956,7 @@
         <td>1.48</td>
         <td>0.44</td>
         <td>16.36</td>
-        <td>43.0</td>
+        <td>42.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Financials" data-quality="OK" data-risk="RISKY" data-composite="17.65">
@@ -3988,7 +3971,7 @@
         <td>-4.66</td>
         <td>-5.71</td>
         <td>19.88</td>
-        <td>43.0</td>
+        <td>42.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Consumer Discretionary" data-quality="OK" data-risk="RISKY" data-composite="17.64">
@@ -4003,7 +3986,7 @@
         <td>-1.63</td>
         <td>-2.68</td>
         <td>21.81</td>
-        <td>59.0</td>
+        <td>58.0</td>
         <td>BELOW_SMA200</td>
       </tr>
       <tr data-sector="Financials" data-quality="GOOD" data-risk="RISKY" data-composite="17.61">
@@ -4018,7 +4001,7 @@
         <td>-5.19</td>
         <td>-6.24</td>
         <td>13.33</td>
-        <td>50.0</td>
+        <td>49.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Health Care" data-quality="OK" data-risk="RISKY" data-composite="17.57">
@@ -4033,7 +4016,7 @@
         <td>4.68</td>
         <td>3.63</td>
         <td>18.78</td>
-        <td>-41.0</td>
+        <td>-42.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Utilities" data-quality="OK" data-risk="RISKY" data-composite="17.29">
@@ -4048,7 +4031,7 @@
         <td>-2.81</td>
         <td>-3.85</td>
         <td>11.92</td>
-        <td>59.0</td>
+        <td>58.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Materials" data-quality="OK" data-risk="RISKY" data-composite="17.05">
@@ -4063,7 +4046,7 @@
         <td>-6.37</td>
         <td>-7.42</td>
         <td>18.14</td>
-        <td>52.0</td>
+        <td>51.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Industrials" data-quality="OK" data-risk="RISKY" data-composite="16.99">
@@ -4078,7 +4061,7 @@
         <td>0.71</td>
         <td>-0.33</td>
         <td>19.74</td>
-        <td>46.0</td>
+        <td>45.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Financials" data-quality="GOOD" data-risk="RISKY" data-composite="16.87">
@@ -4093,7 +4076,7 @@
         <td>-2.01</td>
         <td>-3.05</td>
         <td>18.97</td>
-        <td>46.0</td>
+        <td>45.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Communication Services" data-quality="OK" data-risk="RISKY" data-composite="16.56">
@@ -4108,7 +4091,7 @@
         <td>-9.01</td>
         <td>-10.05</td>
         <td>20.17</td>
-        <td>58.0</td>
+        <td>57.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Consumer Staples" data-quality="OK" data-risk="RISKY" data-composite="16.51">
@@ -4123,7 +4106,7 @@
         <td>-9.04</td>
         <td>-10.08</td>
         <td>16.36</td>
-        <td>31.0</td>
+        <td>30.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Health Care" data-quality="GOOD" data-risk="RISKY" data-composite="16.14">
@@ -4138,7 +4121,7 @@
         <td>-1.43</td>
         <td>-2.47</td>
         <td>21.62</td>
-        <td>58.0</td>
+        <td>57.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Energy" data-quality="GREAT" data-risk="RISKY" data-composite="15.94">
@@ -4153,7 +4136,7 @@
         <td>-5.76</td>
         <td>-6.81</td>
         <td>22.15</td>
-        <td>43.0</td>
+        <td>42.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Industrials" data-quality="OK" data-risk="RISKY" data-composite="15.92">
@@ -4168,7 +4151,7 @@
         <td>1.68</td>
         <td>0.63</td>
         <td>18.9</td>
-        <td>50.0</td>
+        <td>49.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Industrials" data-quality="OK" data-risk="RISKY" data-composite="15.79">
@@ -4183,7 +4166,7 @@
         <td>-1.23</td>
         <td>-2.27</td>
         <td>16.22</td>
-        <td>51.0</td>
+        <td>50.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Health Care" data-quality="OK" data-risk="RISKY" data-composite="15.59">
@@ -4194,12 +4177,12 @@
         <td><strong>15.59</strong></td>
         <td><span class="badge badge-ok">OK</span></td>
         <td><span class="badge badge-risky">RISKY</span></td>
-        <td>35</td>
-        <td>-2.13</td>
+        <td>52</td>
+        <td>-2.14</td>
         <td>-3.18</td>
         <td>19.43</td>
-        <td>59.0</td>
-        <td>BELOW_SMA200|BELOW_SMA50</td>
+        <td>58.0</td>
+        <td>BELOW_SMA200</td>
       </tr>
       <tr data-sector="Industrials" data-quality="GOOD" data-risk="RISKY" data-composite="15.55">
         <td><strong>CTAS</strong></td>
@@ -4213,7 +4196,7 @@
         <td>2.39</td>
         <td>1.35</td>
         <td>23.53</td>
-        <td>-75.0</td>
+        <td>-76.0</td>
         <td>BELOW_SMA200</td>
       </tr>
       <tr data-sector="Health Care" data-quality="OK" data-risk="RISKY" data-composite="15.45">
@@ -4228,7 +4211,7 @@
         <td>1.69</td>
         <td>0.64</td>
         <td>23.17</td>
-        <td>58.0</td>
+        <td>57.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Health Care" data-quality="OK" data-risk="RISKY" data-composite="15.43">
@@ -4243,7 +4226,7 @@
         <td>4.48</td>
         <td>3.44</td>
         <td>24.25</td>
-        <td>43.0</td>
+        <td>42.0</td>
         <td>BELOW_SMA200</td>
       </tr>
       <tr data-sector="Health Care" data-quality="OK" data-risk="RISKY" data-composite="14.84">
@@ -4258,7 +4241,7 @@
         <td>3.5</td>
         <td>2.46</td>
         <td>22.93</td>
-        <td>71.0</td>
+        <td>70.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Materials" data-quality="OK" data-risk="RISKY" data-composite="14.63">
@@ -4273,7 +4256,7 @@
         <td>-6.21</td>
         <td>-7.25</td>
         <td>20.53</td>
-        <td>43.0</td>
+        <td>42.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Materials" data-quality="OK" data-risk="RISKY" data-composite="14.47">
@@ -4285,10 +4268,10 @@
         <td><span class="badge badge-ok">OK</span></td>
         <td><span class="badge badge-risky">RISKY</span></td>
         <td>32</td>
-        <td>-3.68</td>
-        <td>-4.73</td>
+        <td>-3.69</td>
+        <td>-4.74</td>
         <td>23.53</td>
-        <td>-33.0</td>
+        <td>-34.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Health Care" data-quality="OK" data-risk="RISKY" data-composite="14.27">
@@ -4303,7 +4286,7 @@
         <td>2.48</td>
         <td>1.44</td>
         <td>24.97</td>
-        <td>52.0</td>
+        <td>51.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Consumer Discretionary" data-quality="OK" data-risk="RISKY" data-composite="13.18">
@@ -4318,7 +4301,7 @@
         <td>-5.88</td>
         <td>-6.92</td>
         <td>18.12</td>
-        <td>51.0</td>
+        <td>50.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Materials" data-quality="OK" data-risk="RISKY" data-composite="12.91">
@@ -4333,7 +4316,7 @@
         <td>-6.97</td>
         <td>-8.02</td>
         <td>22.44</td>
-        <td>43.0</td>
+        <td>42.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Real Estate" data-quality="GOOD" data-risk="RISKY" data-composite="11.45">
@@ -4348,22 +4331,7 @@
         <td>-4.83</td>
         <td>-5.87</td>
         <td>15.64</td>
-        <td>51.0</td>
-        <td>BELOW_SMA200|BELOW_SMA50</td>
-      </tr>
-      <tr data-sector="Industrials" data-quality="GOOD" data-risk="RISKY" data-composite="10.77">
-        <td><strong>VLTO</strong></td>
-        <td>Veralto</td>
-        <td>Industrials</td>
-        <td>84.91</td>
-        <td><strong>10.77</strong></td>
-        <td><span class="badge badge-good">GOOD</span></td>
-        <td><span class="badge badge-risky">RISKY</span></td>
-        <td>31</td>
-        <td>-4.31</td>
-        <td>-5.35</td>
-        <td>22.59</td>
-        <td>45.0</td>
+        <td>50.0</td>
         <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Materials" data-quality="OK" data-risk="RISKY" data-composite="10.77">
@@ -4378,38 +4346,23 @@
         <td>-9.59</td>
         <td>-10.63</td>
         <td>22.44</td>
-        <td>57.0</td>
+        <td>56.0</td>
         <td>BELOW_SMA200|BELOW_SMA50|RSI_OVERSOLD</td>
       </tr>
-      <tr data-sector="Industrials" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
-        <td><strong>UPS</strong></td>
-        <td>United Parcel Service</td>
+      <tr data-sector="Industrials" data-quality="GOOD" data-risk="RISKY" data-composite="10.77">
+        <td><strong>VLTO</strong></td>
+        <td>Veralto</td>
         <td>Industrials</td>
-        <td>107.7</td>
-        <td><strong>0.0</strong></td>
-        <td><span class="badge badge-weak">WEAK</span></td>
-        <td><span class="badge badge-avoid">AVOID</span></td>
-        <td>79</td>
-        <td>9.41</td>
-        <td>8.36</td>
-        <td>9.29</td>
-        <td>50.0</td>
-        <td>LOW_QUALITY</td>
-      </tr>
-      <tr data-sector="Communication Services" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
-        <td><strong>TTWO</strong></td>
-        <td>Take-Two Interactive</td>
-        <td>Communication Services</td>
-        <td>212.55</td>
-        <td><strong>0.0</strong></td>
-        <td><span class="badge badge-weak">WEAK</span></td>
-        <td><span class="badge badge-avoid">AVOID</span></td>
-        <td>29</td>
-        <td>-4.9</td>
-        <td>-5.94</td>
-        <td>19.73</td>
-        <td>63.0</td>
-        <td>BELOW_SMA200|BELOW_SMA50|LOW_QUALITY</td>
+        <td>84.91</td>
+        <td><strong>10.77</strong></td>
+        <td><span class="badge badge-good">GOOD</span></td>
+        <td><span class="badge badge-risky">RISKY</span></td>
+        <td>31</td>
+        <td>-4.31</td>
+        <td>-5.35</td>
+        <td>22.59</td>
+        <td>44.0</td>
+        <td>BELOW_SMA200|BELOW_SMA50</td>
       </tr>
       <tr data-sector="Utilities" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
         <td><strong>XEL</strong></td>
@@ -4423,38 +4376,8 @@
         <td>-3.49</td>
         <td>-4.54</td>
         <td>7.43</td>
-        <td>52.0</td>
+        <td>51.0</td>
         <td>BELOW_SMA50|LOW_QUALITY</td>
-      </tr>
-      <tr data-sector="Health Care" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
-        <td><strong>UNH</strong></td>
-        <td>UnitedHealth Group</td>
-        <td>Health Care</td>
-        <td>406.57</td>
-        <td><strong>0.0</strong></td>
-        <td><span class="badge badge-weak">WEAK</span></td>
-        <td><span class="badge badge-avoid">AVOID</span></td>
-        <td>78</td>
-        <td>9.96</td>
-        <td>8.92</td>
-        <td>0.52</td>
-        <td>50.0</td>
-        <td>LOW_QUALITY</td>
-      </tr>
-      <tr data-sector="Consumer Staples" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
-        <td><strong>SYY</strong></td>
-        <td>Sysco</td>
-        <td>Consumer Staples</td>
-        <td>76.48</td>
-        <td><strong>0.0</strong></td>
-        <td><span class="badge badge-weak">WEAK</span></td>
-        <td><span class="badge badge-avoid">AVOID</span></td>
-        <td>53</td>
-        <td>4.94</td>
-        <td>3.9</td>
-        <td>16.1</td>
-        <td>50.0</td>
-        <td>BELOW_SMA200|LOW_QUALITY</td>
       </tr>
       <tr data-sector="Communication Services" data-quality="AVOID" data-risk="AVOID" data-composite="0.0">
         <td><strong>WBD</strong></td>
@@ -4468,7 +4391,7 @@
         <td>-2.4</td>
         <td>-3.44</td>
         <td>11.77</td>
-        <td>59.0</td>
+        <td>58.0</td>
         <td>BELOW_SMA50|LOW_QUALITY</td>
       </tr>
       <tr data-sector="Consumer Discretionary" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
@@ -4483,8 +4406,53 @@
         <td>-0.69</td>
         <td>-1.73</td>
         <td>18.02</td>
-        <td>44.0</td>
+        <td>43.0</td>
         <td>BELOW_SMA200|LOW_QUALITY</td>
+      </tr>
+      <tr data-sector="Consumer Staples" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
+        <td><strong>SYY</strong></td>
+        <td>Sysco</td>
+        <td>Consumer Staples</td>
+        <td>76.48</td>
+        <td><strong>0.0</strong></td>
+        <td><span class="badge badge-weak">WEAK</span></td>
+        <td><span class="badge badge-avoid">AVOID</span></td>
+        <td>53</td>
+        <td>4.94</td>
+        <td>3.9</td>
+        <td>16.1</td>
+        <td>49.0</td>
+        <td>BELOW_SMA200|LOW_QUALITY</td>
+      </tr>
+      <tr data-sector="Health Care" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
+        <td><strong>UNH</strong></td>
+        <td>UnitedHealth Group</td>
+        <td>Health Care</td>
+        <td>406.57</td>
+        <td><strong>0.0</strong></td>
+        <td><span class="badge badge-weak">WEAK</span></td>
+        <td><span class="badge badge-avoid">AVOID</span></td>
+        <td>78</td>
+        <td>9.96</td>
+        <td>8.92</td>
+        <td>0.52</td>
+        <td>49.0</td>
+        <td>LOW_QUALITY</td>
+      </tr>
+      <tr data-sector="Communication Services" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
+        <td><strong>TTWO</strong></td>
+        <td>Take-Two Interactive</td>
+        <td>Communication Services</td>
+        <td>212.55</td>
+        <td><strong>0.0</strong></td>
+        <td><span class="badge badge-weak">WEAK</span></td>
+        <td><span class="badge badge-avoid">AVOID</span></td>
+        <td>29</td>
+        <td>-4.9</td>
+        <td>-5.94</td>
+        <td>19.73</td>
+        <td>62.0</td>
+        <td>BELOW_SMA200|BELOW_SMA50|LOW_QUALITY</td>
       </tr>
       <tr data-sector="Real Estate" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
         <td><strong>VTR</strong></td>
@@ -4498,8 +4466,23 @@
         <td>-8.01</td>
         <td>-9.05</td>
         <td>12.56</td>
-        <td>-42.0</td>
+        <td>-43.0</td>
         <td>BELOW_SMA50|LOW_QUALITY</td>
+      </tr>
+      <tr data-sector="Industrials" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
+        <td><strong>UPS</strong></td>
+        <td>United Parcel Service</td>
+        <td>Industrials</td>
+        <td>107.7</td>
+        <td><strong>0.0</strong></td>
+        <td><span class="badge badge-weak">WEAK</span></td>
+        <td><span class="badge badge-avoid">AVOID</span></td>
+        <td>79</td>
+        <td>9.41</td>
+        <td>8.36</td>
+        <td>9.29</td>
+        <td>49.0</td>
+        <td>LOW_QUALITY</td>
       </tr>
       <tr data-sector="Industrials" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
         <td><strong>MMM</strong></td>
@@ -4513,7 +4496,7 @@
         <td>7.58</td>
         <td>6.54</td>
         <td>12.44</td>
-        <td>43.0</td>
+        <td>42.0</td>
         <td>BELOW_SMA200|LOW_QUALITY</td>
       </tr>
       <tr data-sector="Industrials" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
@@ -4528,7 +4511,7 @@
         <td>-1.03</td>
         <td>-2.08</td>
         <td>14.05</td>
-        <td>50.0</td>
+        <td>49.0</td>
         <td>LOW_QUALITY</td>
       </tr>
       <tr data-sector="Health Care" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
@@ -4543,7 +4526,7 @@
         <td>2.62</td>
         <td>1.58</td>
         <td>18.54</td>
-        <td>58.0</td>
+        <td>57.0</td>
         <td>LOW_QUALITY</td>
       </tr>
       <tr data-sector="Materials" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
@@ -4558,7 +4541,7 @@
         <td>-2.45</td>
         <td>-3.49</td>
         <td>10.05</td>
-        <td>57.0</td>
+        <td>56.0</td>
         <td>BELOW_SMA50|LOW_QUALITY</td>
       </tr>
       <tr data-sector="Utilities" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
@@ -4573,7 +4556,7 @@
         <td>0.78</td>
         <td>-0.26</td>
         <td>6.9</td>
-        <td>52.0</td>
+        <td>51.0</td>
         <td>BELOW_SMA50|LOW_QUALITY</td>
       </tr>
       <tr data-sector="Materials" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
@@ -4588,7 +4571,7 @@
         <td>-7.42</td>
         <td>-8.46</td>
         <td>19.17</td>
-        <td>45.0</td>
+        <td>44.0</td>
         <td>BELOW_SMA50|LOW_QUALITY</td>
       </tr>
       <tr data-sector="Energy" data-quality="AVOID" data-risk="AVOID" data-composite="0.0">
@@ -4603,7 +4586,7 @@
         <td>4.64</td>
         <td>3.6</td>
         <td>7.1</td>
-        <td>56.0</td>
+        <td>55.0</td>
         <td>LOW_QUALITY</td>
       </tr>
       <tr data-sector="Energy" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
@@ -4618,7 +4601,7 @@
         <td>-0.51</td>
         <td>-1.55</td>
         <td>14.48</td>
-        <td>57.0</td>
+        <td>56.0</td>
         <td>BELOW_SMA50|LOW_QUALITY</td>
       </tr>
       <tr data-sector="Industrials" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
@@ -4633,7 +4616,7 @@
         <td>-1.19</td>
         <td>-2.23</td>
         <td>14.66</td>
-        <td>73.0</td>
+        <td>72.0</td>
         <td>LOW_QUALITY</td>
       </tr>
       <tr data-sector="Consumer Discretionary" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
@@ -4648,7 +4631,7 @@
         <td>0.43</td>
         <td>-0.62</td>
         <td>11.51</td>
-        <td>-81.0</td>
+        <td>-82.0</td>
         <td>BELOW_SMA50|LOW_QUALITY</td>
       </tr>
       <tr data-sector="Health Care" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
@@ -4663,7 +4646,7 @@
         <td>11.13</td>
         <td>10.08</td>
         <td>1.37</td>
-        <td>52.0</td>
+        <td>51.0</td>
         <td>LOW_QUALITY</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
@@ -4678,7 +4661,7 @@
         <td>30.27</td>
         <td>29.22</td>
         <td>16.15</td>
-        <td>85.0</td>
+        <td>84.0</td>
         <td>LOW_QUALITY</td>
       </tr>
       <tr data-sector="Consumer Staples" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
@@ -4693,7 +4676,7 @@
         <td>-1.48</td>
         <td>-2.52</td>
         <td>12.81</td>
-        <td>53.0</td>
+        <td>52.0</td>
         <td>BELOW_SMA50|LOW_QUALITY</td>
       </tr>
       <tr data-sector="Energy" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
@@ -4708,7 +4691,7 @@
         <td>4.64</td>
         <td>3.6</td>
         <td>11.05</td>
-        <td>53.0</td>
+        <td>52.0</td>
         <td>LOW_QUALITY</td>
       </tr>
       <tr data-sector="Utilities" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
@@ -4723,202 +4706,7 @@
         <td>-0.38</td>
         <td>-1.43</td>
         <td>5.38</td>
-        <td>45.0</td>
-        <td>BELOW_SMA50|LOW_QUALITY</td>
-      </tr>
-      <tr data-sector="Health Care" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
-        <td><strong>SOLV</strong></td>
-        <td>Solventum</td>
-        <td>Health Care</td>
-        <td>78.76</td>
-        <td><strong>0.0</strong></td>
-        <td><span class="badge badge-weak">WEAK</span></td>
-        <td><span class="badge badge-avoid">AVOID</span></td>
-        <td>79</td>
-        <td>9.92</td>
-        <td>8.88</td>
-        <td>10.7</td>
-        <td>-34.0</td>
-        <td>LOW_QUALITY</td>
-      </tr>
-      <tr data-sector="Health Care" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
-        <td><strong>CNC</strong></td>
-        <td>Centene Corporation</td>
-        <td>Health Care</td>
-        <td>65.03</td>
-        <td><strong>0.0</strong></td>
-        <td><span class="badge badge-weak">WEAK</span></td>
-        <td><span class="badge badge-avoid">AVOID</span></td>
-        <td>75</td>
-        <td>18.28</td>
-        <td>17.24</td>
-        <td>1.17</td>
-        <td>50.0</td>
-        <td>LOW_QUALITY</td>
-      </tr>
-      <tr data-sector="Industrials" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
-        <td><strong>CARR</strong></td>
-        <td>Carrier Global</td>
-        <td>Industrials</td>
-        <td>67.35</td>
-        <td><strong>0.0</strong></td>
-        <td><span class="badge badge-weak">WEAK</span></td>
-        <td><span class="badge badge-avoid">AVOID</span></td>
-        <td>79</td>
-        <td>0.19</td>
-        <td>-0.85</td>
-        <td>15.97</td>
-        <td>50.0</td>
-        <td>LOW_QUALITY</td>
-      </tr>
-      <tr data-sector="Health Care" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
-        <td><strong>CAH</strong></td>
-        <td>Cardinal Health</td>
-        <td>Health Care</td>
-        <td>204.48</td>
-        <td><strong>0.0</strong></td>
-        <td><span class="badge badge-weak">WEAK</span></td>
-        <td><span class="badge badge-avoid">AVOID</span></td>
-        <td>76</td>
-        <td>10.36</td>
-        <td>9.32</td>
-        <td>12.26</td>
-        <td>-39.0</td>
-        <td>LOW_QUALITY</td>
-      </tr>
-      <tr data-sector="Real Estate" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
-        <td><strong>CPT</strong></td>
-        <td>Camden Property Trust</td>
-        <td>Real Estate</td>
-        <td>112.97</td>
-        <td><strong>0.0</strong></td>
-        <td><span class="badge badge-weak">WEAK</span></td>
-        <td><span class="badge badge-avoid">AVOID</span></td>
-        <td>78</td>
-        <td>8.55</td>
-        <td>7.51</td>
-        <td>1.18</td>
-        <td>52.0</td>
-        <td>LOW_QUALITY</td>
-      </tr>
-      <tr data-sector="Consumer Staples" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
-        <td><strong>BG</strong></td>
-        <td>Bunge Global</td>
-        <td>Consumer Staples</td>
-        <td>125.5</td>
-        <td><strong>0.0</strong></td>
-        <td><span class="badge badge-weak">WEAK</span></td>
-        <td><span class="badge badge-avoid">AVOID</span></td>
-        <td>75</td>
-        <td>2.02</td>
-        <td>0.98</td>
-        <td>6.94</td>
-        <td>51.0</td>
-        <td>LOW_QUALITY</td>
-      </tr>
-      <tr data-sector="Industrials" data-quality="AVOID" data-risk="AVOID" data-composite="0.0">
-        <td><strong>BA</strong></td>
-        <td>Boeing</td>
-        <td>Industrials</td>
-        <td>215.92</td>
-        <td><strong>0.0</strong></td>
-        <td>AVOID</td>
-        <td><span class="badge badge-avoid">AVOID</span></td>
-        <td>33</td>
-        <td>-6.54</td>
-        <td>-7.58</td>
-        <td>15.11</td>
-        <td>50.0</td>
-        <td>BELOW_SMA200|BELOW_SMA50|LOW_QUALITY</td>
-      </tr>
-      <tr data-sector="Financials" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
-        <td><strong>XYZ</strong></td>
-        <td>Block, Inc.</td>
-        <td>Financials</td>
-        <td>69.92</td>
-        <td><strong>0.0</strong></td>
-        <td><span class="badge badge-weak">WEAK</span></td>
-        <td><span class="badge badge-avoid">AVOID</span></td>
-        <td>74</td>
-        <td>-0.31</td>
-        <td>-1.36</td>
-        <td>15.25</td>
-        <td>-32.0</td>
-        <td>HIGH_BETA|LOW_QUALITY</td>
-      </tr>
-      <tr data-sector="Consumer Staples" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
-        <td><strong>ADM</strong></td>
-        <td>Archer Daniels Midland</td>
-        <td>Consumer Staples</td>
-        <td>80.22</td>
-        <td><strong>0.0</strong></td>
-        <td><span class="badge badge-weak">WEAK</span></td>
-        <td><span class="badge badge-avoid">AVOID</span></td>
-        <td>77</td>
-        <td>4.15</td>
-        <td>3.11</td>
-        <td>6.03</td>
-        <td>57.0</td>
-        <td>LOW_QUALITY</td>
-      </tr>
-      <tr data-sector="Consumer Discretionary" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
-        <td><strong>APTV</strong></td>
-        <td>Aptiv</td>
-        <td>Consumer Discretionary</td>
-        <td>69.29</td>
-        <td><strong>0.0</strong></td>
-        <td><span class="badge badge-weak">WEAK</span></td>
-        <td><span class="badge badge-avoid">AVOID</span></td>
-        <td>78</td>
-        <td>21.33</td>
-        <td>20.28</td>
-        <td>11.72</td>
-        <td>52.0</td>
-        <td>LOW_QUALITY</td>
-      </tr>
-      <tr data-sector="Financials" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
-        <td><strong>APO</strong></td>
-        <td>Apollo Global Management</td>
-        <td>Financials</td>
-        <td>127.57</td>
-        <td><strong>0.0</strong></td>
-        <td><span class="badge badge-weak">WEAK</span></td>
-        <td><span class="badge badge-avoid">AVOID</span></td>
-        <td>52</td>
-        <td>0.25</td>
-        <td>-0.8</td>
-        <td>17.59</td>
-        <td>57.0</td>
-        <td>BELOW_SMA200|LOW_QUALITY</td>
-      </tr>
-      <tr data-sector="Information Technology" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
-        <td><strong>AKAM</strong></td>
-        <td>Akamai Technologies</td>
-        <td>Information Technology</td>
-        <td>141.87</td>
-        <td><strong>0.0</strong></td>
-        <td><span class="badge badge-weak">WEAK</span></td>
-        <td><span class="badge badge-avoid">AVOID</span></td>
-        <td>76</td>
-        <td>21.58</td>
-        <td>20.53</td>
-        <td>14.25</td>
-        <td>59.0</td>
-        <td>LOW_QUALITY</td>
-      </tr>
-      <tr data-sector="Communication Services" data-quality="AVOID" data-risk="AVOID" data-composite="0.0">
-        <td><strong>SATS</strong></td>
-        <td>EchoStar</td>
-        <td>Communication Services</td>
-        <td>116.62</td>
-        <td><strong>0.0</strong></td>
-        <td>AVOID</td>
-        <td><span class="badge badge-avoid">AVOID</span></td>
-        <td>54</td>
-        <td>-4.89</td>
-        <td>-5.94</td>
-        <td>20.8</td>
-        <td>52.0</td>
+        <td>44.0</td>
         <td>BELOW_SMA50|LOW_QUALITY</td>
       </tr>
       <tr data-sector="Utilities" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
@@ -4933,8 +4721,188 @@
         <td>3.31</td>
         <td>2.27</td>
         <td>7.06</td>
-        <td>-41.0</td>
+        <td>-42.0</td>
         <td>LOW_QUALITY</td>
+      </tr>
+      <tr data-sector="Health Care" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
+        <td><strong>CNC</strong></td>
+        <td>Centene Corporation</td>
+        <td>Health Care</td>
+        <td>65.03</td>
+        <td><strong>0.0</strong></td>
+        <td><span class="badge badge-weak">WEAK</span></td>
+        <td><span class="badge badge-avoid">AVOID</span></td>
+        <td>75</td>
+        <td>18.28</td>
+        <td>17.24</td>
+        <td>1.17</td>
+        <td>49.0</td>
+        <td>LOW_QUALITY</td>
+      </tr>
+      <tr data-sector="Industrials" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
+        <td><strong>CARR</strong></td>
+        <td>Carrier Global</td>
+        <td>Industrials</td>
+        <td>67.35</td>
+        <td><strong>0.0</strong></td>
+        <td><span class="badge badge-weak">WEAK</span></td>
+        <td><span class="badge badge-avoid">AVOID</span></td>
+        <td>79</td>
+        <td>0.19</td>
+        <td>-0.85</td>
+        <td>15.97</td>
+        <td>49.0</td>
+        <td>LOW_QUALITY</td>
+      </tr>
+      <tr data-sector="Health Care" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
+        <td><strong>CAH</strong></td>
+        <td>Cardinal Health</td>
+        <td>Health Care</td>
+        <td>204.48</td>
+        <td><strong>0.0</strong></td>
+        <td><span class="badge badge-weak">WEAK</span></td>
+        <td><span class="badge badge-avoid">AVOID</span></td>
+        <td>76</td>
+        <td>10.36</td>
+        <td>9.32</td>
+        <td>12.26</td>
+        <td>-40.0</td>
+        <td>LOW_QUALITY</td>
+      </tr>
+      <tr data-sector="Real Estate" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
+        <td><strong>CPT</strong></td>
+        <td>Camden Property Trust</td>
+        <td>Real Estate</td>
+        <td>112.97</td>
+        <td><strong>0.0</strong></td>
+        <td><span class="badge badge-weak">WEAK</span></td>
+        <td><span class="badge badge-avoid">AVOID</span></td>
+        <td>78</td>
+        <td>8.55</td>
+        <td>7.51</td>
+        <td>1.18</td>
+        <td>51.0</td>
+        <td>LOW_QUALITY</td>
+      </tr>
+      <tr data-sector="Consumer Staples" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
+        <td><strong>BG</strong></td>
+        <td>Bunge Global</td>
+        <td>Consumer Staples</td>
+        <td>125.5</td>
+        <td><strong>0.0</strong></td>
+        <td><span class="badge badge-weak">WEAK</span></td>
+        <td><span class="badge badge-avoid">AVOID</span></td>
+        <td>75</td>
+        <td>2.02</td>
+        <td>0.98</td>
+        <td>6.94</td>
+        <td>50.0</td>
+        <td>LOW_QUALITY</td>
+      </tr>
+      <tr data-sector="Industrials" data-quality="AVOID" data-risk="AVOID" data-composite="0.0">
+        <td><strong>BA</strong></td>
+        <td>Boeing</td>
+        <td>Industrials</td>
+        <td>215.92</td>
+        <td><strong>0.0</strong></td>
+        <td>AVOID</td>
+        <td><span class="badge badge-avoid">AVOID</span></td>
+        <td>33</td>
+        <td>-6.54</td>
+        <td>-7.58</td>
+        <td>15.11</td>
+        <td>49.0</td>
+        <td>BELOW_SMA200|BELOW_SMA50|LOW_QUALITY</td>
+      </tr>
+      <tr data-sector="Financials" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
+        <td><strong>XYZ</strong></td>
+        <td>Block, Inc.</td>
+        <td>Financials</td>
+        <td>69.92</td>
+        <td><strong>0.0</strong></td>
+        <td><span class="badge badge-weak">WEAK</span></td>
+        <td><span class="badge badge-avoid">AVOID</span></td>
+        <td>74</td>
+        <td>-0.31</td>
+        <td>-1.36</td>
+        <td>15.25</td>
+        <td>-33.0</td>
+        <td>HIGH_BETA|LOW_QUALITY</td>
+      </tr>
+      <tr data-sector="Consumer Staples" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
+        <td><strong>ADM</strong></td>
+        <td>Archer Daniels Midland</td>
+        <td>Consumer Staples</td>
+        <td>80.22</td>
+        <td><strong>0.0</strong></td>
+        <td><span class="badge badge-weak">WEAK</span></td>
+        <td><span class="badge badge-avoid">AVOID</span></td>
+        <td>77</td>
+        <td>4.15</td>
+        <td>3.11</td>
+        <td>6.03</td>
+        <td>56.0</td>
+        <td>LOW_QUALITY</td>
+      </tr>
+      <tr data-sector="Consumer Discretionary" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
+        <td><strong>APTV</strong></td>
+        <td>Aptiv</td>
+        <td>Consumer Discretionary</td>
+        <td>69.29</td>
+        <td><strong>0.0</strong></td>
+        <td><span class="badge badge-weak">WEAK</span></td>
+        <td><span class="badge badge-avoid">AVOID</span></td>
+        <td>78</td>
+        <td>21.33</td>
+        <td>20.28</td>
+        <td>11.72</td>
+        <td>51.0</td>
+        <td>LOW_QUALITY</td>
+      </tr>
+      <tr data-sector="Financials" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
+        <td><strong>APO</strong></td>
+        <td>Apollo Global Management</td>
+        <td>Financials</td>
+        <td>127.57</td>
+        <td><strong>0.0</strong></td>
+        <td><span class="badge badge-weak">WEAK</span></td>
+        <td><span class="badge badge-avoid">AVOID</span></td>
+        <td>52</td>
+        <td>0.25</td>
+        <td>-0.79</td>
+        <td>17.6</td>
+        <td>56.0</td>
+        <td>BELOW_SMA200|LOW_QUALITY</td>
+      </tr>
+      <tr data-sector="Information Technology" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
+        <td><strong>AKAM</strong></td>
+        <td>Akamai Technologies</td>
+        <td>Information Technology</td>
+        <td>141.87</td>
+        <td><strong>0.0</strong></td>
+        <td><span class="badge badge-weak">WEAK</span></td>
+        <td><span class="badge badge-avoid">AVOID</span></td>
+        <td>76</td>
+        <td>21.58</td>
+        <td>20.53</td>
+        <td>14.25</td>
+        <td>58.0</td>
+        <td>LOW_QUALITY</td>
+      </tr>
+      <tr data-sector="Communication Services" data-quality="AVOID" data-risk="AVOID" data-composite="0.0">
+        <td><strong>SATS</strong></td>
+        <td>EchoStar</td>
+        <td>Communication Services</td>
+        <td>116.62</td>
+        <td><strong>0.0</strong></td>
+        <td>AVOID</td>
+        <td><span class="badge badge-avoid">AVOID</span></td>
+        <td>54</td>
+        <td>-4.89</td>
+        <td>-5.94</td>
+        <td>20.8</td>
+        <td>51.0</td>
+        <td>BELOW_SMA50|LOW_QUALITY</td>
       </tr>
       <tr data-sector="Health Care" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
         <td><strong>ELV</strong></td>
@@ -4948,23 +4916,38 @@
         <td>12.13</td>
         <td>11.08</td>
         <td>0.68</td>
-        <td>38.0</td>
+        <td>37.0</td>
         <td>LOW_QUALITY</td>
       </tr>
-      <tr data-sector="Consumer Discretionary" data-quality="AVOID" data-risk="AVOID" data-composite="0.0">
-        <td><strong>GM</strong></td>
-        <td>General Motors</td>
-        <td>Consumer Discretionary</td>
-        <td>83.77</td>
+      <tr data-sector="Health Care" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
+        <td><strong>SOLV</strong></td>
+        <td>Solventum</td>
+        <td>Health Care</td>
+        <td>78.76</td>
         <td><strong>0.0</strong></td>
-        <td>AVOID</td>
+        <td><span class="badge badge-weak">WEAK</span></td>
         <td><span class="badge badge-avoid">AVOID</span></td>
-        <td>80</td>
-        <td>7.07</td>
-        <td>6.02</td>
-        <td>3.96</td>
-        <td>43.0</td>
+        <td>79</td>
+        <td>9.92</td>
+        <td>8.88</td>
+        <td>10.7</td>
+        <td>-35.0</td>
         <td>LOW_QUALITY</td>
+      </tr>
+      <tr data-sector="Health Care" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
+        <td><strong>MRNA</strong></td>
+        <td>Moderna</td>
+        <td>Health Care</td>
+        <td>47.6</td>
+        <td><strong>0.0</strong></td>
+        <td><span class="badge badge-weak">WEAK</span></td>
+        <td><span class="badge badge-avoid">AVOID</span></td>
+        <td>57</td>
+        <td>-1.94</td>
+        <td>-2.98</td>
+        <td>20.07</td>
+        <td>52.0</td>
+        <td>BELOW_SMA50|LOW_QUALITY</td>
       </tr>
       <tr data-sector="Materials" data-quality="AVOID" data-risk="AVOID" data-composite="0.0">
         <td><strong>SW</strong></td>
@@ -4978,7 +4961,7 @@
         <td>-1.6</td>
         <td>-2.65</td>
         <td>21.56</td>
-        <td>51.0</td>
+        <td>50.0</td>
         <td>LOW_QUALITY</td>
       </tr>
       <tr data-sector="Consumer Staples" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
@@ -4993,7 +4976,7 @@
         <td>3.48</td>
         <td>2.43</td>
         <td>13.81</td>
-        <td>1.0</td>
+        <td>0.0</td>
         <td>EARNINGS_NEAR|LOW_QUALITY</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
@@ -5008,7 +4991,7 @@
         <td>16.89</td>
         <td>15.84</td>
         <td>14.4</td>
-        <td>57.0</td>
+        <td>56.0</td>
         <td>LOW_QUALITY</td>
       </tr>
       <tr data-sector="Health Care" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
@@ -5023,7 +5006,7 @@
         <td>1.47</td>
         <td>0.42</td>
         <td>15.15</td>
-        <td>49.0</td>
+        <td>48.0</td>
         <td>LOW_QUALITY</td>
       </tr>
       <tr data-sector="Financials" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
@@ -5038,7 +5021,7 @@
         <td>5.73</td>
         <td>4.68</td>
         <td>11.02</td>
-        <td>51.0</td>
+        <td>50.0</td>
         <td>LOW_QUALITY</td>
       </tr>
       <tr data-sector="Utilities" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
@@ -5053,7 +5036,7 @@
         <td>1.77</td>
         <td>0.72</td>
         <td>2.79</td>
-        <td>-35.0</td>
+        <td>-36.0</td>
         <td>LOW_QUALITY</td>
       </tr>
       <tr data-sector="Energy" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
@@ -5068,7 +5051,7 @@
         <td>9.77</td>
         <td>8.72</td>
         <td>3.08</td>
-        <td>46.0</td>
+        <td>45.0</td>
         <td>LOW_QUALITY</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
@@ -5083,7 +5066,7 @@
         <td>35.52</td>
         <td>34.47</td>
         <td>12.09</td>
-        <td>71.0</td>
+        <td>70.0</td>
         <td>LOW_QUALITY</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
@@ -5098,7 +5081,7 @@
         <td>20.17</td>
         <td>19.12</td>
         <td>10.39</td>
-        <td>56.0</td>
+        <td>55.0</td>
         <td>HIGH_BETA|LOW_QUALITY</td>
       </tr>
       <tr data-sector="Communication Services" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
@@ -5113,7 +5096,7 @@
         <td>-2.41</td>
         <td>-3.45</td>
         <td>13.01</td>
-        <td>43.0</td>
+        <td>42.0</td>
         <td>BELOW_SMA200|BELOW_SMA50|LOW_QUALITY</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
@@ -5128,23 +5111,8 @@
         <td>-6.09</td>
         <td>-7.14</td>
         <td>16.8</td>
-        <td>52.0</td>
+        <td>51.0</td>
         <td>BELOW_SMA200|BELOW_SMA50|LOW_QUALITY</td>
-      </tr>
-      <tr data-sector="Health Care" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
-        <td><strong>MRNA</strong></td>
-        <td>Moderna</td>
-        <td>Health Care</td>
-        <td>47.6</td>
-        <td><strong>0.0</strong></td>
-        <td><span class="badge badge-weak">WEAK</span></td>
-        <td><span class="badge badge-avoid">AVOID</span></td>
-        <td>57</td>
-        <td>-1.94</td>
-        <td>-2.98</td>
-        <td>20.07</td>
-        <td>53.0</td>
-        <td>BELOW_SMA50|LOW_QUALITY</td>
       </tr>
       <tr data-sector="Real Estate" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
         <td><strong>MAA</strong></td>
@@ -5158,8 +5126,23 @@
         <td>5.21</td>
         <td>4.16</td>
         <td>7.74</td>
-        <td>51.0</td>
+        <td>50.0</td>
         <td>LOW_QUALITY</td>
+      </tr>
+      <tr data-sector="Industrials" data-quality="OK" data-risk="AVOID" data-composite="0.0">
+        <td><strong>FDX</strong></td>
+        <td>FedEx</td>
+        <td>Industrials</td>
+        <td>330.22</td>
+        <td><strong>0.0</strong></td>
+        <td><span class="badge badge-ok">OK</span></td>
+        <td><span class="badge badge-avoid">AVOID</span></td>
+        <td>78</td>
+        <td>9.69</td>
+        <td>8.64</td>
+        <td>3.2</td>
+        <td>14.0</td>
+        <td>EARNINGS_NEAR</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
         <td><strong>MCHP</strong></td>
@@ -5173,7 +5156,7 @@
         <td>-9.6</td>
         <td>-10.64</td>
         <td>13.29</td>
-        <td>59.0</td>
+        <td>58.0</td>
         <td>LOW_QUALITY</td>
       </tr>
       <tr data-sector="Consumer Discretionary" data-quality="AVOID" data-risk="AVOID" data-composite="0.0">
@@ -5188,7 +5171,7 @@
         <td>24.01</td>
         <td>22.97</td>
         <td>8.39</td>
-        <td>51.0</td>
+        <td>50.0</td>
         <td>LOW_QUALITY</td>
       </tr>
       <tr data-sector="Materials" data-quality="AVOID" data-risk="AVOID" data-composite="0.0">
@@ -5203,7 +5186,7 @@
         <td>-8.96</td>
         <td>-10.0</td>
         <td>22.44</td>
-        <td>53.0</td>
+        <td>52.0</td>
         <td>BELOW_SMA50|LOW_QUALITY</td>
       </tr>
       <tr data-sector="Industrials" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
@@ -5218,7 +5201,7 @@
         <td>2.16</td>
         <td>1.11</td>
         <td>24.35</td>
-        <td>43.0</td>
+        <td>42.0</td>
         <td>BELOW_SMA200|BELOW_SMA50|LOW_QUALITY</td>
       </tr>
       <tr data-sector="Communication Services" data-quality="AVOID" data-risk="AVOID" data-composite="0.0">
@@ -5233,7 +5216,7 @@
         <td>-3.76</td>
         <td>-4.81</td>
         <td>8.98</td>
-        <td>-34.0</td>
+        <td>-35.0</td>
         <td>BELOW_SMA50|LOW_QUALITY</td>
       </tr>
       <tr data-sector="Consumer Staples" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
@@ -5248,7 +5231,7 @@
         <td>-4.69</td>
         <td>-5.74</td>
         <td>17.35</td>
-        <td>10.0</td>
+        <td>9.0</td>
         <td>EARNINGS_NEAR|BELOW_SMA200|BELOW_SMA50|LOW_QUALITY</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="OK" data-risk="AVOID" data-composite="0.0">
@@ -5263,7 +5246,7 @@
         <td>4.13</td>
         <td>3.08</td>
         <td>5.39</td>
-        <td>9.0</td>
+        <td>8.0</td>
         <td>EARNINGS_NEAR</td>
       </tr>
       <tr data-sector="Health Care" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
@@ -5278,7 +5261,7 @@
         <td>10.04</td>
         <td>9.0</td>
         <td>6.72</td>
-        <td>52.0</td>
+        <td>51.0</td>
         <td>LOW_QUALITY</td>
       </tr>
       <tr data-sector="Health Care" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
@@ -5293,7 +5276,7 @@
         <td>44.05</td>
         <td>43.01</td>
         <td>0.01</td>
-        <td>51.0</td>
+        <td>50.0</td>
         <td>RSI_OVERBOUGHT|LOW_QUALITY</td>
       </tr>
       <tr data-sector="Industrials" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
@@ -5308,8 +5291,23 @@
         <td>-1.44</td>
         <td>-2.48</td>
         <td>14.19</td>
-        <td>45.0</td>
+        <td>44.0</td>
         <td>BELOW_SMA50|LOW_QUALITY</td>
+      </tr>
+      <tr data-sector="Consumer Discretionary" data-quality="AVOID" data-risk="AVOID" data-composite="0.0">
+        <td><strong>GM</strong></td>
+        <td>General Motors</td>
+        <td>Consumer Discretionary</td>
+        <td>83.77</td>
+        <td><strong>0.0</strong></td>
+        <td>AVOID</td>
+        <td><span class="badge badge-avoid">AVOID</span></td>
+        <td>80</td>
+        <td>7.07</td>
+        <td>6.02</td>
+        <td>3.96</td>
+        <td>42.0</td>
+        <td>LOW_QUALITY</td>
       </tr>
       <tr data-sector="Information Technology" data-quality="WEAK" data-risk="AVOID" data-composite="0.0">
         <td><strong>INTC</strong></td>
@@ -5323,7 +5321,7 @@
         <td>0.59</td>
         <td>-0.45</td>
         <td>16.93</td>
-        <td>45.0</td>
+        <td>44.0</td>
         <td>HIGH_BETA|LOW_QUALITY</td>
       </tr>
     </tbody>
@@ -5333,43 +5331,57 @@
 (function() {
   var sortCol = 4, sortAsc = false;
 
+  var QUALITY_ORDER = {GREAT:0, GOOD:1, OK:2, WEAK:3};
+  var RISK_ORDER    = {SAFE:0, WATCH:1, RISKY:2, AVOID:3};
+  var FLAGS_ORDER   = {CLEAR:0, HIGH_BETA:1, BELOW_SMA50:2, BELOW_SMA200:3, EARNINGS_NEAR:4, LOW_QUALITY:5};
+  var NUMERIC_COLS  = {3:1, 4:1, 7:1, 8:1, 9:1, 10:1, 11:1};
+
+  function getSortVal(row, col) {
+    var text = row.cells[col].textContent.trim();
+    if (col === 5) {
+      var qo = QUALITY_ORDER[text];
+      return qo !== undefined ? qo : 99;
+    }
+    if (col === 6) {
+      var ro = RISK_ORDER[text];
+      return ro !== undefined ? ro : 99;
+    }
+    if (col === 12) {
+      var flags = text.split('|'), minO = 99;
+      for (var i = 0; i < flags.length; i++) {
+        var fo = FLAGS_ORDER[flags[i].trim()];
+        if (fo !== undefined && fo < minO) minO = fo;
+      }
+      return minO;
+    }
+    if (NUMERIC_COLS[col]) {
+      var n = parseFloat(text);
+      return isNaN(n) ? (sortAsc ? 1e9 : -1e9) : n;
+    }
+    return text;
+  }
+
   function updateCount() {
-    var tbody = document.querySelector('#candidates-table tbody');
-    var visible = Array.from(tbody.querySelectorAll('tr')).filter(function(r) {
-      return !r.classList.contains('hidden');
-    }).length;
-    document.getElementById('row-count').textContent =
-      visible + ' stock' + (visible !== 1 ? 's' : '');
+    var visible = Array.from(
+      document.querySelector('#candidates-table tbody').querySelectorAll('tr')
+    ).filter(function(r) { return !r.classList.contains('hidden'); }).length;
+    document.getElementById('row-count').textContent = visible;
   }
 
   window.applyFilters = function() {
     var sector  = document.getElementById('f-sector').value;
     var quality = document.getElementById('f-quality').value;
     var risk    = document.getElementById('f-risk').value;
-    var minC    = parseFloat(document.getElementById('f-min').value) || 0;
-    var tbody   = document.querySelector('#candidates-table tbody');
-    Array.from(tbody.querySelectorAll('tr')).forEach(function(row) {
-      var rSector  = row.dataset.sector  || '';
-      var rQuality = row.dataset.quality || '';
-      var rRisk    = row.dataset.risk    || '';
-      var rComp    = parseFloat(row.dataset.composite) || 0;
-      var show = (!sector  || rSector  === sector)  &&
-                 (!quality || rQuality === quality) &&
-                 (!risk    || rRisk    === risk)    &&
-                 rComp >= minC;
+    var minC    = parseFloat(document.getElementById('f-composite').value);
+    if (isNaN(minC)) minC = 0;
+    Array.from(
+      document.querySelector('#candidates-table tbody').querySelectorAll('tr')
+    ).forEach(function(row) {
+      var show = (!sector  || row.dataset.sector  === sector)  &&
+                 (!quality || row.dataset.quality === quality) &&
+                 (!risk    || row.dataset.risk    === risk)    &&
+                 parseFloat(row.dataset.composite || 0) >= minC;
       row.classList.toggle('hidden', !show);
-    });
-    updateCount();
-  };
-
-  window.resetFilters = function() {
-    document.getElementById('f-sector').value  = '';
-    document.getElementById('f-quality').value = '';
-    document.getElementById('f-risk').value    = '';
-    document.getElementById('f-min').value     = '';
-    var tbody = document.querySelector('#candidates-table tbody');
-    Array.from(tbody.querySelectorAll('tr')).forEach(function(r) {
-      r.classList.remove('hidden');
     });
     updateCount();
   };
@@ -5377,23 +5389,22 @@
   window.sortTable = function(col) {
     var table = document.getElementById('candidates-table');
     var tbody = table.querySelector('tbody');
-    var ths   = Array.from(table.querySelectorAll('th'));
+    var ths   = Array.from(table.querySelectorAll('thead tr:first-child th'));
     var rows  = Array.from(tbody.querySelectorAll('tr'));
     if (sortCol === col) { sortAsc = !sortAsc; } else { sortAsc = true; sortCol = col; }
     ths.forEach(function(th) { th.classList.remove('sorted-asc', 'sorted-desc'); });
     ths[col].classList.add(sortAsc ? 'sorted-asc' : 'sorted-desc');
     rows.sort(function(a, b) {
-      var av = a.cells[col].textContent.trim();
-      var bv = b.cells[col].textContent.trim();
-      var an = parseFloat(av), bn = parseFloat(bv);
-      if (!isNaN(an) && !isNaN(bn)) return sortAsc ? an - bn : bn - an;
-      return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+      var av = getSortVal(a, sortCol);
+      var bv = getSortVal(b, sortCol);
+      if (typeof av === 'number' && typeof bv === 'number') return sortAsc ? av - bv : bv - av;
+      return sortAsc ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
     });
     rows.forEach(function(r) { tbody.appendChild(r); });
   };
 
-  // Mark Composite column as sorted descending (data pre-sorted by script)
-  document.querySelectorAll('#candidates-table th')[4].classList.add('sorted-desc');
+  // Initial state: Composite sorted descending (data pre-sorted by export script)
+  document.querySelectorAll('#candidates-table thead tr:first-child th')[4].classList.add('sorted-desc');
   updateCount();
 })();
 </script>
