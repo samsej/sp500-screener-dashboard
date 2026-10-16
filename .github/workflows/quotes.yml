@@ -2,6 +2,11 @@ name: Refresh quotes
 
 on:
   workflow_dispatch:
+    inputs:
+      full_sweep:
+        description: 'Fetch all names even outside market hours (paced, one sweep)'
+        type: boolean
+        default: false
   schedule:
     # Covers both DST variants and one close sweep. Job checks the ET clock.
     - cron: '*/8 13-21 * * 1-5'
@@ -41,9 +46,44 @@ jobs:
           APCA_API_KEY_ID: ${{ secrets.APCA_API_KEY_ID }}
           APCA_API_SECRET_KEY: ${{ secrets.APCA_API_SECRET_KEY }}
           QUOTE_WATCHLIST: ${{ vars.QUOTE_WATCHLIST }}
+          FULL_SWEEP: ${{ inputs.full_sweep }}
         run: |
           mkdir -p logs
-          python scripts/gh_quotes_refresh.py --core data/core.json --out data/quotes.json > logs/refresh.txt 2>&1
+          if [ "$GITHUB_REPOSITORY" != 'soham-porwal/smartoptions-brief' ]; then
+            python scripts/gh_quotes_refresh.py --out data/quotes.json --mirror-url https://soham-porwal.github.io/smartoptions-brief/data/quotes.json > logs/refresh.txt 2>&1
+          elif [ "$FULL_SWEEP" = 'true' ]; then
+            cp data/quotes.json logs/previous-quotes.json
+            python scripts/gh_quotes_refresh.py --core data/core.json --out logs/candidate-quotes.json > logs/refresh.txt 2>&1
+            cp logs/candidate-quotes.json data/quotes.json
+          else
+            python scripts/gh_quotes_refresh.py --core data/core.json --out data/quotes.json > logs/refresh.txt 2>&1
+          fi
+      - name: Label observations older than the advertised cadence
+        shell: python
+        run: |
+          import datetime as dt, json, pathlib
+          from zoneinfo import ZoneInfo
+          path = pathlib.Path('data/quotes.json')
+          data = json.loads(path.read_text())
+          local = dt.datetime.now(dt.timezone.utc).astimezone(ZoneInfo('America/New_York'))
+          close = local.replace(hour=16, minute=0, second=0, microsecond=0)
+          regular = local.weekday() < 5 and 570 <= local.hour*60+local.minute < 960
+          if local < close:
+              close -= dt.timedelta(days=1)
+          while close.weekday() >= 5:
+              close -= dt.timedelta(days=1)
+          cutoff = (local if regular else close) - dt.timedelta(minutes=20)
+          for quote in data.get('quotes', {}).values():
+              if quote.get('price') is None:
+                  continue
+              observed = dt.datetime.fromisoformat(str(quote.get('asof_utc')).replace('Z', '+00:00'))
+              if observed < cutoff or observed > local + dt.timedelta(minutes=1):
+                  quote.update(freshness='stale', status='stale', reason='Observation is outside the advertised session cadence; original source timestamp retained')
+          stale = sum(q.get('freshness') == 'stale' for q in data.get('quotes', {}).values())
+          health = data.setdefault('health', {})
+          health['stale_count'] = stale
+          health['line'] = health.get('line', '').split('; labeled stale:')[0] + '; labeled stale: ' + str(stale)
+          path.write_text(json.dumps(data, separators=(',', ':'), allow_nan=False) + '\n')
       - name: Commit only changed quotes
         shell: bash
         run: |
@@ -53,6 +93,7 @@ jobs:
             exit 0
           fi
           git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'Refresh timestamped quotes' -- data/quotes.json
+          git pull --rebase origin main
           git push origin HEAD:main
       # GITHUB_TOKEN commits do not trigger a branch-based Pages build. Deploy
       # explicitly so the newly committed quotes also reach the public site.
@@ -60,7 +101,7 @@ jobs:
       - name: Prepare committed public files
         run: |
           mkdir -p _site
-          git archive HEAD | tar -x -C _site
+          git archive HEAD | tar -x -C _site --exclude='_pipeline' --exclude='.github' --exclude='logs' --exclude='tests' --exclude='out'
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
