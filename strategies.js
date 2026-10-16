@@ -268,9 +268,7 @@ function recommend(ctx) {
     const top = parts.slice().sort((a, b) => Math.abs(b.points) - Math.abs(a.points))[0];
     return {id: s.id, name: s.name, family: s.family, level: s.level, plain: s.plain, score: +score.toFixed(2), parts,
       flip: top ? `most sensitive to ${top.label.toLowerCase()} (${top.points > 0 ? '+' : ''}${top.points}); would drop/rise on ${top.flip}` : 'no rule applied',
-      payoff: pf && pf.ok ? {net: pf.net, maxGain: pf.maxGain, maxLoss: pf.maxLoss, breakevens: pf.breakevens, pop: pf.pop, strikes: pf.strikes, label: pf.label,
-        units:'USD per underlying share, not per contract. Contract amounts require the actual contract multiplier.',method:pf.method,
-        probability_meaning:'POP is a risk-neutral pricing-model quantity, not a calibrated real-world success rate.'} : {unavailable: pf ? pf.reason : 'no price'}};
+      payoff: pf && pf.ok ? {net: pf.net, maxGain: pf.maxGain, maxLoss: pf.maxLoss, breakevens: pf.breakevens, pop: pf.pop, strikes: pf.strikes, label: pf.label} : {unavailable: pf ? pf.reason : 'no price'}};
   }).sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
   const n = clamp(c.top || 8, 5, 8), ranked = scored.slice(0, n), rest = scored.slice(n);
   const whyNot = rest.map(x => { const neg = x.parts.filter(p => p.points < 0).sort((a, b) => a.points - b.points); return {id: x.id, name: x.name, score: x.score, why: neg.length ? neg.slice(0, 2).map(p => `${p.label} ${p.points}`).join('; ') : 'scored below the top ' + n + ' (no negative rule; others fit better)'}; });
@@ -342,8 +340,8 @@ function coreData() { try { return root.SO2 && root.SO2.D ? root.SO2.D() : null;
 function termRatio(D) { const v = D && D.rel && D.rel.vol_breadth && D.rel.vol_breadth.term_ratio; return isNum(v) ? v : v && isNum(v.value) ? v.value : null; }
 function findIn(groups, id) { for (const g of Object.values(groups || {})) if (Array.isArray(g)) { const x = g.find(o => o && o.id === id); if (x) return x; } return null; }
 async function ctxFromData(t) {
-  const D = coreData() || {}, r = (D.rows || []).find(x => x.t === t) || {}, ctx = {ticker: t, price: r.px, iv: r.iv, days_to_earnings: r.ern, sector: r.sec, prov: {}};
-  ctx.prov.price = `${r.pxd || 'n/a'} close/last (core.json)`; ctx.prov.iv = isNum(r.iv) ? `${r.ivs || 'option chain'}; expiry ${r.ivx || '?'} strike ${r.ivk || '?'}` : 'no IV stored for this ticker';
+  const D = coreData() || {}, r = (D.rows || []).find(x => x.t === t) || {}, ctx = {ticker: t, price: r.px, iv: r.iv, rv20_core: r.rv20, iv_sec_med: r.iv_sec_med, days_to_earnings: r.ern, sector: r.sec, prov: {}};
+  ctx.prov.price = `${r.pxd || 'n/a'} close/last (core.json)`; ctx.prov.iv = isNum(r.iv) ? `${r.ivs || 'option chain'}; expiry ${r.ivx || '?'} strike ${r.ivk || '?'}` : 'no IV stored for this ticker (20d RV proxy available)';
   const bill = findIn(D.macro, 'us3m'); if (bill && isNum(bill.v)) { ctx.r = bill.v / 100; ctx.prov.r = `3M T-bill ${bill.v}% (${bill.provider || 'US Treasury'}, ${bill.period || ''})`; } else { ctx.r = 0; ctx.prov.r = 'no T-bill rate stored: r = 0'; }
   const reg = D.rel && D.rel.regime; if (reg && isNum(reg.score)) { ctx.regime = reg.score; ctx.prov.regime = `${reg.score} ${reg.tier || ''} (dashboard regime)`; }
   const tr = termRatio(D); if (isNum(tr)) { ctx.vol_regime = tr > 1 ? 'stress' : 'normal'; ctx.prov.vol_regime = `VIX/VIX3M ${tr} (term ratio > 1 = stress)`; }
@@ -354,9 +352,15 @@ async function ctxFromData(t) {
   return ctx;
 }
 function render(el, base) {
-  const f = UI.form = UI.form && UI.form.ticker === base.ticker ? UI.form : {ticker: base.ticker, stance: base.trend === 'up' ? 'bullish' : base.trend === 'down' ? 'bearish' : 'neutral', horizon_days: base.iv_days || 30, risk_tolerance: 'medium'};
-  const ctx = Object.assign({}, base, {stance: f.stance, horizon_days: f.horizon_days, risk_tolerance: f.risk_tolerance});
+  const f = UI.form = UI.form && UI.form.ticker === base.ticker ? UI.form : {ticker: base.ticker, stance: base.trend === 'up' ? 'bullish' : base.trend === 'down' ? 'bearish' : 'neutral', horizon_days: base.iv_days || 30, risk_tolerance: 'medium', use_rv_proxy: true};
+  const fallbackVol = isNum(base.realized_vol) ? base.realized_vol : isNum(base.rv20_core) ? base.rv20_core : base.iv_sec_med;
+  const usingProxy = !isNum(base.iv) && !!f.use_rv_proxy && isNum(fallbackVol);
+  const effIv = isNum(base.iv) ? base.iv : (usingProxy ? fallbackVol : null);
+  const ctx = Object.assign({}, base, {iv: effIv, stance: f.stance, horizon_days: f.horizon_days, risk_tolerance: f.risk_tolerance});
   const rec = recommend(ctx), P = id => payoff(id, {S: ctx.price, iv: ctx.iv, days: ctx.horizon_days, r: ctx.r});
+  const localData = root.SmartOptionsImport && root.SmartOptionsImport.getData ? root.SmartOptionsImport.getData() : null;
+  const bookPos = localData && localData.book ? localData.book[base.ticker] : null;
+  const bookHtml = bookPos ? `<div class="st-book-banner" style="margin:6px 0;padding:6px 10px;border:1px solid #2b3640;border-radius:4px;background:#11171d"><b>My Book Position:</b> ${isNum(bookPos.qty) ? bookPos.qty + ' shares' : 'held'}${isNum(bookPos.cost) ? ` @ $${bookPos.cost.toFixed(2)} cost basis (${isNum(base.price) ? ((base.price / bookPos.cost - 1) * 100 >= 0 ? '+' : '') + ((base.price / bookPos.cost - 1) * 100).toFixed(1) + '% P&L' : ''})` : ''} · <b>Suggested contract sizing:</b> ${isNum(bookPos.qty) && bookPos.qty >= 100 ? Math.floor(bookPos.qty / 100) + ' contract(s) (100 sh/contract for covered call / collar / protective put)' : '<100 shares (fractional lot; standard option = 100 sh)'}</div>` : '';
   const rankContext = `${base.ticker} · stance ${rec.inputs.stance} · trend ${rec.inputs.trend || 'unavailable'} · ATM IV ${isNum(rec.inputs.iv) ? rec.inputs.iv.toFixed(2) + '%' : 'unavailable'} · realized vol ${isNum(rec.inputs.realized_vol) ? rec.inputs.realized_vol.toFixed(2) + '%' : 'unavailable'} · IV/RV ${isNum(rec.inputs.iv_rv) ? rec.inputs.iv_rv.toFixed(2) : 'unavailable'} · regime ${isNum(rec.inputs.regime) ? rec.inputs.regime : 'unavailable'} · volatility regime ${rec.inputs.vol_regime || 'unavailable'} · earnings in ${isNum(rec.inputs.days_to_earnings) ? rec.inputs.days_to_earnings + ' days' : 'unavailable'} · horizon ${rec.inputs.horizon_days} days · risk tolerance ${rec.inputs.risk_tolerance}. Sources / as-of: ${Object.entries(base.prov || {}).map(([k,v]) => k.replace(/_/g,' ') + ': ' + v).join(' · ')}.`;
   let cmp = UI.cmp.filter(id => BY[id]).slice(0, 3);
   if (!UI.cmpTouched && !cmp.length) cmp = rec.ranked.filter(x => !x.payoff.unavailable).slice(0, 2).map(x => x.id); // show the top payoffs by default
@@ -364,10 +368,12 @@ function render(el, base) {
   const pv = base.prov || {};
   const inputsHtml = Object.entries(rec.inputs).map(([k, v]) => `<span class="st-in" title="${esc(pv[k] || '')}">${esc(k)}: <b>${v == null ? 'missing' : isNum(v) ? (+v.toFixed(2)) : esc(v)}</b></span>`).join('');
   el.innerHTML = `<div class="st">
-    <div class="st-head"><b>${esc(base.ticker)} strategy ideas</b> <span class="dim">price ${isNum(base.price) ? base.price : 'n/a'} · ${esc(pv.price || '')} · IV ${isNum(base.iv) ? base.iv + '%' : 'missing'} · r ${esc(pv.r || '')}</span></div>
-    <div class="st-warn">Every premium, strike and probability here is a ${esc(MODEL_LABEL)}. Education only: not a recommendation to trade.${isNum(base.iv) ? '' : ' <b>No IV is stored for this ticker</b>, so option payoffs are not estimated.'}</div>
+    <div class="st-head"><b>${esc(base.ticker)} strategy ideas</b> <span class="dim">price ${isNum(base.price) ? base.price : 'n/a'} · ${esc(pv.price || '')} · IV ${isNum(base.iv) ? base.iv + '%' : (usingProxy ? `Proxy: 20d RV ${effIv.toFixed(1)}%` : 'missing')} · r ${esc(pv.r || '')}</span></div>
+    ${bookHtml}
+    <div class="st-warn">Every premium, strike and probability here is a ${esc(MODEL_LABEL)}. Education only: not a recommendation to trade.${isNum(base.iv) ? '' : (usingProxy ? ` <b>No IV is stored for this ticker</b> — modeling payoffs with <b>20d Realized Vol (${effIv.toFixed(1)}%)</b> proxy (uncheck below to disable).` : ' <b>No IV is stored for this ticker</b>, so option payoffs are not estimated.')}</div>
     <p class="dim">Editable scenario assumptions below. Defaults describe a comparison, not an investment opinion. Payoff amounts are per share; multiply by the contract multiplier (usually 100 for standard US equity options). Model probabilities are conditional on the pricing assumptions, not validated success rates.</p>
     <div class="st-form">Stance ${sel('stance', ['bullish', 'neutral', 'bearish'])} Horizon <input type="number" min="1" max="730" data-f="horizon_days" value="${esc(f.horizon_days)}"> days · Risk tolerance ${sel('risk_tolerance', ['low', 'medium', 'high'])}
+      ${!isNum(base.iv) && isNum(fallbackVol) ? `<label title="Use 20-day realized volatility when delayed ATM IV was not fetched"><input type="checkbox" data-f="use_rv_proxy"${f.use_rv_proxy ? ' checked' : ''}> Proxy: 20d RV (${fallbackVol.toFixed(1)}%)</label>` : ''}
       <button class="st-btn" data-act="rules">${UI.showRules ? 'Hide' : 'Show'} scoring rules</button> <button class="st-btn" data-act="lib">${UI.showLib ? 'Hide' : 'Browse'} full library (${LIB.length})</button></div>
     <div class="st-ins">${inputsHtml}${rec.missing.length ? ` <span class="dim">missing inputs are skipped by their rules: ${esc(rec.missing.join(', '))}</span>` : ''}</div>
     ${UI.showRules ? `<ol class="st-rules">${RULES.map(R => `<li><b>${esc(R.label)}</b>: ${esc(R.desc)}</li>`).join('')}</ol><div class="dim">${esc(rec.method)}</div>` : ''}
@@ -388,7 +394,7 @@ async function mount(el, ticker) {
     el._stBound = true;
     el.addEventListener('change', e => {
       const x = e.target;
-      if (x.dataset.f) { UI.form[x.dataset.f] = x.dataset.f === 'horizon_days' ? clamp(parseInt(x.value, 10) || 30, 1, 730) : x.value; el._stDraw(); }
+      if (x.dataset.f) { UI.form[x.dataset.f] = x.dataset.f === 'horizon_days' ? clamp(parseInt(x.value, 10) || 30, 1, 730) : x.dataset.f === 'use_rv_proxy' ? !!x.checked : x.value; el._stDraw(); }
       else if (x.dataset.cmp) { const id = x.dataset.cmp; if (!UI.cmpTouched) { UI.cmpTouched = true; UI.cmp = [...el.querySelectorAll('[data-cmp]:checked')].map(i => i.dataset.cmp).filter(i => i !== id); } UI.cmp = x.checked ? [...UI.cmp.filter(i => i !== id), id].slice(-3) : UI.cmp.filter(i => i !== id); el._stDraw(); }
     });
     el.addEventListener('click', e => {

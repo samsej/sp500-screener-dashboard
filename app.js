@@ -15,7 +15,7 @@ const DEFAULTS = {
 };
 let D = null;              // core.json
 let S = load();            // persisted settings
-let V = {sel: {kind: 't', id: 'SPY'}, sort: {k: 'd1', dir: -1}, preset: 'all', q: '', range: '3M', overlay: '', sector: null, tab: 'markets'};
+let V = {sel: {kind: 't', id: 'SPY'}, sort: {k: 'd1', dir: -1}, preset: 'all', q: '', range: '3M', overlay: '', cmpMode: 'dual', sector: null, tab: 'markets'};
 const pxCache = {};
 let chart = null, mainSeries = null, ovSeries = null;
 let chartDraw = 0;
@@ -28,6 +28,8 @@ function save() { try { localStorage.setItem('so2-settings', JSON.stringify(S));
 
 /* ---------- formatting ---------- */
 function na(reason) { return `<span class="na" data-tip="${esc(reason || 'not available')}">—</span>`; }
+// plain-language date label for Sam's screener scores (shared with the Brief shell, brief.js screenerLabel)
+function samLabel(mode) { return window.SmartOptionsBrief ? window.SmartOptionsBrief.screenerLabel(mode) : "Sam's screener scores from Jul 25, 2026"; }
 function num(v, dp, reason) { return isNum(v) ? v.toLocaleString('en-US', {minimumFractionDigits: dp, maximumFractionDigits: dp}) : na(reason); }
 function pct(v, dp, reason, unit) {
   if (!isNum(v)) return na(reason);
@@ -98,7 +100,7 @@ function renderHeader() {
   const st = {};
   for (const k in D.macro) for (const o of D.macro[k]) st[o.status] = (st[o.status] || 0) + 1;
   const fr = `macro ${st.ok || 0} ok${st.stale ? ` · <span style="color:var(--warn)">${st.stale} stale</span>` : ''}${st.missing ? ` · ${st.missing} missing` : ''}${st.error ? ` · ${st.error} error` : ''}`;
-  $('#hstat').innerHTML = `Session ${esc(D.asof_session)} · updated ${etTime(ex)} ET · delayed · ${fr} · <span class="dim">Sam columns: snapshot 2026-07-25</span>`;
+  $('#hstat').innerHTML = `Session ${esc(D.asof_session)} · updated ${etTime(ex)} ET · delayed · ${fr} · <span class="dim">${esc(samLabel('short'))}</span>`;
   $('#hstat').dataset.tip = `exported ${ex}\nmacro ${g.macro}\nequities ${g.equities}\nrelations ${g.relations}\ncrosscheck ${g.crosscheck}`;
 }
 function renderTape() {
@@ -132,7 +134,7 @@ const COLS = [
   {k: 'pct', h: '52w', ph: 1, tip: 'Position in 52-week range (unadjusted high/low)'},
   {k: 'ern', h: 'Earn', ph: 1, tip: 'Days until next earnings (Yahoo; may be an estimate)'},
   {k: 'iv', h: 'ATM IV', ph: 1, tip: 'At-the-money implied vol, nearest weekly expiry (Yahoo chain, delayed)'},
-  {k: 'opp', h: 'Opp', ph: 1, tip: "Sam's Opportunity score · SmartOptions snapshot 2026-07-25 (read-only)"},
+  {k: 'opp', h: 'Opp', ph: 1, tip: "Opportunity: " + samLabel('tip')},
   {k: 'b10', h: 'β10Y', ph: 1, tip: '% stock move per +10bp 10Y yield (OLS, 252 sessions). Bright = |t| at or above your threshold'},
   {k: 'boil', h: 'βOil', ph: 1, tip: '% stock move per +1% WTI (OLS, 252 sessions)'},
   {k: 'scen', h: 'Scen', tip: 'Scenario impact %: sum(coef x your shock). Historical association, not a forecast'},
@@ -147,8 +149,15 @@ const COLS = [
   {k: 'bvix', h: 'βVIX', ph: 1, opt: 1, tip: '% stock move per +1pt VIX (OLS, 252 sessions)'},
   {k: 'bspy', h: 'βSPY', ph: 1, opt: 1, tip: '% stock move per +1% SPY (OLS, 252 sessions)'},
   {k: 'r2', h: 'R²', ph: 1, opt: 1, tip: 'R² of the 5-factor OLS (252 sessions)'},
-  {k: 'risk', h: 'Risk', ph: 1, opt: 1, tip: "Sam's Risk label · SmartOptions snapshot 2026-07-25 (read-only)"},
-  {k: 'qual', h: 'Qual', ph: 1, opt: 1, tip: "Sam's Quality label · SmartOptions snapshot 2026-07-25 (read-only)"},
+  {k: 'risk', h: 'Risk', ph: 1, opt: 1, tip: "Risk label: " + samLabel('tip')},
+  {k: 'qual', h: 'Qual', ph: 1, opt: 1, tip: "Quality label: " + samLabel('tip')},
+  {k: 'res20d', h: '20d α', ph: 1, tip: '20-session idiosyncratic return (%) = actual 20d return minus 5-factor OLS macro-explained move'},
+  {k: 'pefrel', h: 'vs Sec', ph: 1, tip: 'Forward P/E relative to GICS sector median (1.00x = sector median)'},
+  {k: 'epsg', h: 'EPS g%', ph: 1, opt: 1, tip: 'Implied forward EPS growth % = (Trailing P/E / Forward P/E - 1) * 100'},
+  {k: 'res5d', h: '5d α', ph: 1, opt: 1, tip: '5-session idiosyncratic return (%) after stripping 5-factor OLS macro move'},
+  {k: 'rv20', h: 'RV20', ph: 1, opt: 1, tip: '20-session annualized realized volatility (%) from Adj Close log returns'},
+  {k: 'ivrv', h: 'IV/RV', ph: 1, opt: 1, tip: 'ATM IV (or sector median IV proxy) / 20d realized volatility'},
+  {k: 'drift', h: 'Δ07-25', ph: 1, opt: 1, tip: 'Price drift % since the 2026-07-25 SmartOptions snapshot'},
 ];
 const COLK = {};
 COLS.forEach(c => { COLK[c.k] = c; });
@@ -170,6 +179,13 @@ function val(r, k) {
     case 'r2': return r.rel ? r.rel.r2 : null;
     case 'risk': return r.sam ? r.sam.risk : null;
     case 'qual': return r.sam ? r.sam.q : null;
+    case 'res20d': return r.res20d;
+    case 'res5d': return r.res5d;
+    case 'pefrel': return r.pef_sec_rel;
+    case 'epsg': return r.eps_g_imp;
+    case 'rv20': return r.rv20;
+    case 'ivrv': return isNum(r.ivrv) ? r.ivrv : r.ivrv_eff;
+    case 'drift': return r.sam_drift ? r.sam_drift.px_pct : null;
     case 't': return r.t;
     default:
       if (k.startsWith('c:')) return r.rel ? r.rel.c[k.slice(2)] : null;
@@ -179,6 +195,10 @@ function val(r, k) {
 const PRESETS = [
   {id: 'all', h: 'All'},
   {id: 'movers', h: 'Movers', f: r => r.sets.includes('A'), sort: {k: 'd1', dir: -1, abs: true}},
+  {id: 'alpha20', h: '20d Alpha (+3%)', f: r => isNum(r.res20d) && r.res20d >= 3.0, sort: {k: 'res20d', dir: -1}},
+  {id: 'garpmacro', h: 'Macro Tailwind + Cheap', f: r => isNum(r.pef_sec_rel) && r.pef_sec_rel <= 0.95 && ((scenOn() && r.rel && (scenarioImpact(r.rel.c, S.shock) || 0) >= 0) || (!scenOn() && isNum(r.res20d) && r.res20d >= 0)), sort: {k: 'pefrel', dir: 1}},
+  {id: 'volcheap', h: 'Cheap Vol (Catalyst)', f: r => isNum(r.ivrv_eff) && r.ivrv_eff <= 1.05 && ((isNum(r.ern) && r.ern >= 0 && r.ern <= 21) || (isNum(r.res20d) && Math.abs(r.res20d) >= 3)), sort: {k: 'ivrv', dir: 1}},
+  {id: 'volrich', h: 'Rich Premium (Sell Vol)', f: r => isNum(r.ivrv_eff) && r.ivrv_eff >= 1.25 && (!isNum(r.ern) || r.ern > 14), sort: {k: 'ivrv', dir: -1}},
   {id: 'sam', h: 'Sam top', f: r => r.sam && isNum(r.sam.opp), sort: {k: 'opp', dir: -1}},
   {id: 'earn7', h: 'Earnings 7d', f: r => isNum(r.ern) && r.ern >= 0 && r.ern <= 7, sort: {k: 'ern', dir: 1}},
   {id: 'rate', h: 'Rate-sensitive', f: r => r.rel && Math.abs(r.rel.t.us10y_bps) >= S.minT, sort: {k: 'b10', dir: 1}},
@@ -258,8 +278,15 @@ flags ${r.sam.flags || '-'}${r.sam.risk === 'AVOID' ? '\nAVOID -> his composite 
       return `<td class="ph ${Math.abs(t) >= S.minT ? 'sig' : 'nsig'}" data-tip="coef ${r.rel.c[f]} · t ${t} · R² ${r.rel.r2} · n ${r.rel.n}">${pct(r.rel.c[f], 2)}</td>`;
     }
     case 'r2': return `<td class="ph" data-tip="${esc(r.rel ? '5-factor OLS, n ' + r.rel.n : '')}">${r.rel ? num(r.rel.r2, 2) : na('no regression (insufficient history)')}</td>`;
-    case 'risk': return `<td class="ph sam" data-tip="Sam snapshot 2026-07-25 (read-only)">${r.sam && r.sam.risk ? esc(r.sam.risk) : na("not in Sam's 2026-07-25 snapshot")}</td>`;
-    case 'qual': return `<td class="ph sam" data-tip="Sam snapshot 2026-07-25 (read-only)">${r.sam && r.sam.q ? esc(r.sam.q) : na("not in Sam's 2026-07-25 snapshot")}</td>`;
+    case 'risk': return `<td class="ph sam" data-tip="${esc(samLabel('tip'))}">${r.sam && r.sam.risk ? esc(r.sam.risk) : na("not in Sam's 2026-07-25 snapshot")}</td>`;
+    case 'qual': return `<td class="ph sam" data-tip="${esc(samLabel('tip'))}">${r.sam && r.sam.q ? esc(r.sam.q) : na("not in Sam's 2026-07-25 snapshot")}</td>`;
+    case 'res20d': return `<td class="ph" data-tip="${esc(r.att ? `20d actual ${r.att.actual_20d}% = factors ${r.att.explained_20d}% + idiosyncratic ${r.res20d}%` : '20d idiosyncratic residual')}">${pct(r.res20d, 1, 'no 20d attribution')}</td>`;
+    case 'res5d': return `<td class="ph" data-tip="${esc(r.att ? `5d actual ${r.att.actual_5d}% = factors ${r.att.explained_5d}% + idiosyncratic ${r.res5d}%` : '5d idiosyncratic residual')}">${pct(r.res5d, 1, 'no 5d attribution')}</td>`;
+    case 'pefrel': return `<td class="ph" data-tip="${esc(`Fwd P/E ${r.pef || 'n/a'} vs ${r.sec || 'sector'} median ${r.pef_sec_med || 'n/a'}x`)}">${isNum(r.pef_sec_rel) ? `<span class="${r.pef_sec_rel <= 0.9 ? 'up' : r.pef_sec_rel >= 1.2 ? 'dn' : ''}">${r.pef_sec_rel.toFixed(2)}x</span>` : na('forward P/E missing')}</td>`;
+    case 'epsg': return `<td class="ph" data-tip="Implied forward EPS growth % = (Trailing P/E / Forward P/E - 1) * 100">${pct(r.eps_g_imp, 1, 'requires positive trailing and forward P/E')}</td>`;
+    case 'rv20': return `<td class="ph" data-tip="20-session annualized realized volatility from Adj Close log returns">${isNum(r.rv20) ? r.rv20.toFixed(1) + '%' : na('insufficient bars')}</td>`;
+    case 'ivrv': return `<td class="ph" data-tip="${esc(isNum(r.ivrv) ? `ATM IV ${r.iv}% / RV20 ${r.rv20}%` : `Sector median IV proxy ${r.iv_sec_med}% / RV20 ${r.rv20}%`)}">${isNum(r.ivrv) ? r.ivrv.toFixed(2) + 'x' : isNum(r.ivrv_eff) ? `<span class="dim" title="Sector IV proxy">${r.ivrv_eff.toFixed(2)}p</span>` : na('vol missing')}</td>`;
+    case 'drift': return `<td class="ph sam" data-tip="${esc(r.sam_drift && isNum(r.sam_drift.px_pct) ? `Price change since 2026-07-25 snapshot ($${r.sam ? r.sam.px : ''} -> $${r.px})` : 'Not in snapshot')}">${pct(r.sam_drift ? r.sam_drift.px_pct : null, 1, 'not in Sam snapshot')}</td>`;
   }
   return '<td></td>';
 }
@@ -276,7 +303,7 @@ function renderTable() {
   $('#tbody').innerHTML = rows.map(r => `<tr data-t="${esc(r.t)}"${r.t === selT ? ' class="sel"' : ''}>${activeCols().map(c => cell(r, c)).join('')}</tr>`).join('');
   const sc = scenOn() ? ' · scenario on: ' + FACTORS.filter(f => S.shock[f]).map(f => `${FLABEL[f]} ${S.shock[f] > 0 ? '+' : ''}${S.shock[f]}${SHOCK_U[f]}`).join(', ') + ' (historical association, not a forecast)' : '';
   const sk = V.sort.k.startsWith('c:') ? ` · sorted by ${FLABEL[V.sort.k.slice(2)]} coef` : '';
-  $('#tmeta').innerHTML = `<span>${rows.length} of ${D.rows.length}${V.sector ? ' · ' + esc(V.sector) : ''}${sk}${sc}</span><span>Sam cols = snapshot 2026-07-25</span>`;
+  $('#tmeta').innerHTML = `<span>${rows.length} of ${D.rows.length}${V.sector ? ' · ' + esc(V.sector) : ''}${sk}${sc}</span><span>${esc(samLabel('short'))}</span>`;
 }
 
 /* ---------- chart ---------- */
@@ -341,19 +368,51 @@ async function drawChart() {
     // regime history (partial) can end before the session the tape score is for: say so instead of showing two numbers silently
     if (sel.id === 'regime' && data.length) { const tv = (D.tape.find(x => x.id === 'regime') || {}).v; chgHtml = `${num(data[data.length - 1].value, 0)} <span class="dim">history last ${esc(data[data.length - 1].time)}${isNum(tv) ? ` · tape score ${tv} (session ${esc(D.asof_session)})` : ''}</span>`; }
   }
-  const up = data.length > 1 && data[data.length - 1].value >= data[0].value;
-  mainSeries = chart.addAreaSeries({lineColor: up ? '#00c805' : '#ff5000', topColor: up ? 'rgba(0,200,5,.18)' : 'rgba(255,80,0,.18)', bottomColor: 'rgba(0,0,0,0)', lineWidth: 2, priceLineVisible: false});
-  mainSeries.setData(data);
+  let od = [];
   if (V.overlay && V.overlay !== sel.id) {
-    const od = rowOf(V.overlay) ? clean((await px(V.overlay)).bars.map(b => [b[0], b[4]])) : clean(seriesData(V.overlay));
+    od = (rowOf(V.overlay) || V.overlay === 'SPY') ? clean((await px(V.overlay)).bars.map(b => [b[0], b[4]])) : clean(seriesData(V.overlay));
     if (draw !== chartDraw) return;
-    ovSeries = chart.addLineSeries({color: '#6ea8fe', lineWidth: 1, priceScaleId: 'left', priceLineVisible: false, lastValueVisible: true});
-    ovSeries.setData(od);
-    chart.applyOptions({leftPriceScale: {visible: true}});
+  }
+  const months = {'1M': 1, '3M': 3, '6M': 6, '1Y': 12}[V.range];
+  let cutTime = null;
+  if (months && data.length) {
+    const toD = new Date(data[data.length - 1].time + 'T00:00:00Z');
+    toD.setUTCMonth(toD.getUTCMonth() - months);
+    cutTime = toD.toISOString().slice(0, 10);
+  }
+  let plotMain = data, plotOv = od, modeNote = '';
+  if (od.length && V.cmpMode === 'idx') {
+    const ovMap = new Map(od.map(p => [p.time, p.value]));
+    const shared = data.filter(p => (!cutTime || p.time >= cutTime) && ovMap.has(p.time) && p.value !== 0 && ovMap.get(p.time) !== 0);
+    if (shared.length >= 2) {
+      const b0 = shared[0].value, o0 = ovMap.get(shared[0].time);
+      plotMain = shared.map(p => ({time: p.time, value: (p.value / b0 - 1) * 100}));
+      plotOv = shared.map(p => ({time: p.time, value: (ovMap.get(p.time) / o0 - 1) * 100}));
+      modeNote = `Indexed % change from ${shared[0].time} (0% baseline, shared right scale)`;
+    }
+  } else if (od.length && V.cmpMode === 'ratio') {
+    const ovMap = new Map(od.map(p => [p.time, p.value]));
+    const shared = data.filter(p => (!cutTime || p.time >= cutTime) && ovMap.has(p.time) && ovMap.get(p.time) !== 0);
+    if (shared.length >= 2) {
+      const r0 = shared[0].value / ovMap.get(shared[0].time);
+      plotMain = shared.map(p => ({time: p.time, value: r0 ? ((p.value / ovMap.get(p.time)) / r0) * 100 : 100}));
+      plotOv = [];
+      modeNote = `Relative ratio (${sel.id} / ${FLABEL2(V.overlay)}) indexed to 100 on ${shared[0].time}`;
+    }
+  }
+  const up = plotMain.length > 1 && plotMain[plotMain.length - 1].value >= plotMain[0].value;
+  mainSeries = chart.addAreaSeries({lineColor: up ? '#00c805' : '#ff5000', topColor: up ? 'rgba(0,200,5,.18)' : 'rgba(255,80,0,.18)', bottomColor: 'rgba(0,0,0,0)', lineWidth: 2, priceLineVisible: false});
+  mainSeries.setData(plotMain);
+  if (V.overlay && V.overlay !== sel.id && plotOv.length) {
+    const sameScale = V.cmpMode === 'idx';
+    ovSeries = chart.addLineSeries({color: '#6ea8fe', lineWidth: 1.5, priceScaleId: sameScale ? 'right' : 'left', priceLineVisible: false, lastValueVisible: true});
+    ovSeries.setData(plotOv);
+    chart.applyOptions({leftPriceScale: {visible: !sameScale}});
   } else chart.applyOptions({leftPriceScale: {visible: false}});
-  markers(data);
+  markers(plotMain);
   $('#ctitle').innerHTML = `<div class="big">${esc(title)} <span style="font-size:15px">${chgHtml}</span></div><div class="nm">${esc(sub)}</div>`;
-  legendBase = V.overlay ? `<span style="color:#6ea8fe">— ${esc(FLABEL2(V.overlay))} on left scale</span> · co-movement is association, not causation` : '';
+  const cmpBtns = V.overlay && V.overlay !== sel.id ? ` · <span class="cmp-modes" style="display:inline-flex;gap:3px">${[['dual','Dual scale'],['idx','Indexed %'],['ratio','Ratio (A/B)']].map(([m,l])=>`<button type="button" data-cmpmode="${m}" class="${V.cmpMode===m?'on':''}" style="padding:1px 5px;font-size:10px;cursor:pointer">${l}</button>`).join('')}</span>` : '';
+  legendBase = (V.overlay ? `<span style="color:#6ea8fe">— ${esc(FLABEL2(V.overlay))} (${esc(modeNote || 'on left scale')})</span> · co-movement is association, not causation` : '') + cmpBtns;
   legend();
   setRange();
   evStrip();
@@ -478,8 +537,9 @@ function attrBlock(r) {
   const tx = (n - 1) * bw;
   const tot = `<rect x="${tx + 4}" y="${Math.min(sy(0), sy(a.actual))}" width="${bw - 8}" height="${Math.max(1, Math.abs(sy(a.actual) - sy(0)))}" fill="#8a939b"/>
     <text x="${tx + bw / 2}" y="${H - 9}" fill="#e8ebee" font-size="10" text-anchor="middle">Actual</text><text x="${tx + bw / 2}" y="${H}" fill="#a3acb5" font-size="9" text-anchor="middle">${a.actual > 0 ? '+' : ''}${a.actual.toFixed(2)}</text>`;
+  const mh = (isNum(a.resid_5d) || isNum(a.resid_20d)) ? `<div class="sub" style="padding:4px 12px"><b>Multi-horizon residual α:</b> 1d ${pct(a.stock_specific, 2)} · 5d ${pct(a.resid_5d, 2)} (actual ${pct(a.actual_5d, 1)} vs macro ${pct(a.explained_5d, 1)}) · 20d ${pct(a.resid_20d, 2)} (actual ${pct(a.actual_20d, 1)} vs macro ${pct(a.explained_20d, 1)})</div>` : '';
   return `<div class="blk"><div class="sech" data-tip="${esc('coef x that session\'s factor move, summed = factor-explained; remainder = stock-specific. Session ' + a.date)}">Move attribution ${esc(a.date)} <span class="dim">% pts</span></div>
-    <svg width="100%" viewBox="0 0 ${W} ${H + 2}"><line x1="0" x2="${W}" y1="${sy(0)}" y2="${sy(0)}" stroke="#232a31"/>${bars}${tot}</svg></div>`;
+    <svg width="100%" viewBox="0 0 ${W} ${H + 2}"><line x1="0" x2="${W}" y1="${sy(0)}" y2="${sy(0)}" stroke="#232a31"/>${bars}${tot}</svg>${mh}</div>`;
 }
 function samBlock(r, d) {
   if (!r.sam) return `<div class="blk"><div class="sech">Sam's score</div><div class="evl">${na("not in Sam's 2026-07-25 snapshot")}</div></div>`;
@@ -493,10 +553,10 @@ function samBlock(r, d) {
     bar = `<svg width="100%" viewBox="0 0 ${W} 12" preserveAspectRatio="none" style="height:12px">${segs.join('')}</svg>
       <div class="sub" style="padding:3px 0">${c.parts.map((p, i) => `<span style="color:${cols[i]}">■</span> ${p.k} ${p.score.toFixed(0)}`).join(' · ')}<br>base ${c.base_score == null ? (c.parts.reduce((a, p) => a + p.w * p.score, 0) / 100).toFixed(2) : c.base_score.toFixed(2)} x Q ${c.qmult} x R ${c.rmult} = ${c.derived} (published ${c.published})</div>`;
   } else if (c) bar = `<div class="sub">components not shown: could not reproduce published score from EXPLAIN</div>`;
-  return `<div class="blk"><div class="sech" data-tip="${esc("Sam's own scores, read-only. SmartOptions snapshot " + (s.asof || '2026-07-25') + '. Component split uses his documented formula and is shown only when it reproduces his published number.')}">Sam's score <span class="dim">snapshot 2026-07-25</span></div>
+  return `<div class="blk"><div class="sech" data-tip="${esc("Sam's own scores, read-only. SmartOptions snapshot " + (s.asof || '2026-07-25') + '. Component split uses his documented formula and is shown only when it reproduces his published number.')}">Sam's score <span class="dim">${esc(samLabel('short'))}</span></div>
     <div style="padding:0 12px">
     <div class="grid" style="grid-template-columns:repeat(4,1fr);border:0">${stat('Opp', num(s.opp, 1))}${stat('Quality', esc(s.q || '—'))}${stat('Trend', num(s.trend, 0))}${stat('Risk', esc(s.risk || '—'))}</div>
-    ${bar}<div class="sub">flags: ${esc(s.flags || '—')} · snapshot price ${num(s.px, 2)}</div></div></div>`;
+    ${bar}<div class="sub">flags: ${esc(s.flags || '—')} · snapshot price ${num(s.px, 2)}${r.sam_drift && isNum(r.sam_drift.px_pct) ? ` · <b>drift since 07-25: ${pct(r.sam_drift.px_pct, 1)} px${isNum(r.sam_drift.pef_chg) ? ', ' + (r.sam_drift.pef_chg > 0 ? '+' : '') + r.sam_drift.pef_chg.toFixed(1) + 'x fP/E' : ''}</b>` : ''}${r.sam_drift && (isNum(r.sam_drift.roe) || isNum(r.sam_drift.de)) ? `<br>retained quality inputs (07-25): ROE ${num(r.sam_drift.roe, 1)}% · D/E ${num(r.sam_drift.de, 2)} · Rev g ${num(r.sam_drift.rev_g, 1)}% · EPS g ${num(r.sam_drift.eps_g, 1)}%` : ''}</div></div></div>`;
 }
 function eventsBlock(r) {
   const ev = [];
@@ -543,7 +603,8 @@ function step(dir) {
   select('t', n.dataset.t); n.scrollIntoView({block: 'nearest'});
 }
 function writeHash() {
-  const sh = FACTORS.filter(f => S.shock[f]).map(f => `${f}:${S.shock[f]}`).join(',');
+  if (window.SmartOptionsBrief && !window.SmartOptionsBrief.isResearch()) return;   // Brief routes own the hash outside Research
+  const sh =FACTORS.filter(f => S.shock[f]).map(f => `${f}:${S.shock[f]}`).join(',');
   const h = `${V.sel.kind}=${encodeURIComponent(V.sel.id)}&r=${V.range}${V.overlay ? '&ov=' + V.overlay : ''}${sh ? '&sc=' + sh : ''}${V.tab !== 'markets' ? '&tab=' + V.tab : ''}`;
   history.replaceState(null, '', '#' + h);
 }
@@ -566,6 +627,7 @@ function wire() {
   });
   document.addEventListener('keydown', e => {
     if (e.target.matches('input,select,textarea')) return;
+    if (window.SmartOptionsBrief && !window.SmartOptionsBrief.isResearch()) return;
     if (e.key === 'ArrowDown' || e.key === 'j') { e.preventDefault(); step(1); }
     else if (e.key === 'ArrowUp' || e.key === 'k') { e.preventDefault(); step(-1); }
     else if (e.key === '/') { e.preventDefault(); e.stopImmediatePropagation(); $('#q').focus(); }   // '/' = search; chat opens from ASK
@@ -583,9 +645,11 @@ function wire() {
   $('#q').addEventListener('input', e => { V.q = e.target.value; renderTable(); });
   $('#tape').addEventListener('click', e => { const t = e.target.closest('.ti'); if (!t) return; const id = t.dataset.s; if (id === 'SPY') select('t', 'SPY'); else select('s', id); showTab('markets'); });
   $('#ranges').addEventListener('click', e => { const b = e.target.closest('button'); if (!b) return; V.range = b.dataset.r; setRange(); writeHash(); });
-  $('#overlay').innerHTML = OVERLAYS.map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
+  const eqOvs = D.rows.slice(0, 40).map(r => [r.t, r.t]);
+  $('#overlay').innerHTML = OVERLAYS.concat(eqOvs.filter(([k]) => !OVERLAYS.some(([x]) => x === k))).map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
   $('#overlay').value = V.overlay;
-  $('#overlay').addEventListener('change', e => { V.overlay = e.target.value; drawChart(); writeHash(); });
+  $('#overlay').addEventListener('change', e => { V.overlay = e.target.value; if (rowOf(V.overlay) && V.cmpMode === 'dual') V.cmpMode = 'idx'; drawChart(); writeHash(); });
+  $('#clegend').addEventListener('click', e => { const b = e.target.closest('[data-cmpmode]'); if (!b) return; V.cmpMode = b.dataset.cmpmode; drawChart(); });
   $('#signals').addEventListener('click', e => {
     const s = e.target.closest('[data-sig]'); if (!s) return; const g = D.signals[+s.dataset.sig];
     if (g.t) { select('t', g.t); if (g.factor) { const ov = {us10y_bps: 'us10y', dxy: 'dxy', wti: 'wti', vix: 'vix'}[g.factor]; if (ov) { V.overlay = ov; $('#overlay').value = ov; drawChart(); writeHash(); } } }

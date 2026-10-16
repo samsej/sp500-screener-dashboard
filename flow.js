@@ -22,6 +22,8 @@
     ivRich: 1.20, ivCheap: 1.10,             // ATM IV / 20d realized vol
     catalystDays: 14,                        // earnings inside this many days = catalyst
     dteDefault: 30,                          // horizon for expected move when no IV expiry is stored
+    quarantineStaleSam: 1,                   // 1 = quarantine >30d snapshot from live directional vote
+    alpha20dMin: 3.0,                        // 20d idiosyncratic residual % threshold for alpha vote
   };
   const RULE_LABELS = {
     regimeBull: 'Regime score >= (bull vote)', regimeBear: 'Regime score <= (bear vote)', breadthPP: 'Breadth RSP-SPY 20d, +/- pp',
@@ -30,6 +32,7 @@
     valCheap: 'Fwd P/E vs sector: cheap below x', valRich: 'Fwd P/E vs sector: rich above x', upsideMin: 'Analyst upside >= % (positive vote)',
     strongVotes: 'Name STRONG/WEAK needs |votes| >=', ivRich: 'IV/RV rich at/above', ivCheap: 'IV/RV not rich at/below',
     catalystDays: 'Earnings catalyst within days', dteDefault: 'Default horizon, days',
+    quarantineStaleSam: 'Quarantine stale (>30d) snapshot vote (1=yes, 0=no)', alpha20dMin: '20d factor residual alpha +/- %',
   };
 
   /* ---------- pure math ---------- */
@@ -166,9 +169,22 @@
     const s = r.sam;
     if (s && (s.q || fin(s.trend))) {
       const good = (s.q === 'GREAT' || s.q === 'GOOD') && fin(s.trend) && s.trend >= 60, bad = s.q === 'WEAK' || s.q === 'AVOID';
-      d.push({k: 'sam', label: 'Snapshot', vote: good ? 1 : bad ? -1 : 0, chip: `snap ${s.q || '?'} T${fin(s.trend) ? s.trend.toFixed(0) : '?'}`,
-        detail: `${s.label || 'SmartOptions snapshot'}: quality ${s.q || 'n/a'}, TrendScore ${fin(s.trend) ? s.trend : 'n/a'}, opp ${fin(s.opp) ? s.opp : 'n/a'}; GREAT/GOOD AND trend >= 60 = +1, WEAK/AVOID = -1. Read-only, not recomputed; dated, may be stale.`, src: s.label || 'SmartOptions snapshot'});
+      const rawVote = good ? 1 : bad ? -1 : 0;
+      const isQuarantined = Boolean(r.sam_drift || (s.asof && r.pxd && Math.abs(daysBetween(r.pxd, s.asof)) > 30)) && Boolean(R && R.quarantineStaleSam);
+      const drf = r.sam_drift || {};
+      const driftTag = fin(drf.px_pct) ? ` (${drf.px_pct > 0 ? '+' : ''}${drf.px_pct.toFixed(1)}% vs 07-25)` : '';
+      const fpeTag = fin(drf.pef_chg) ? `, fP/E ${drf.pef_chg > 0 ? '+' : ''}${drf.pef_chg.toFixed(1)}x` : '';
+      const qSub = [fin(drf.roe) ? `ROE ${drf.roe}%` : null, fin(drf.de) ? `D/E ${drf.de}` : null].filter(Boolean).join(', ');
+      d.push({k: 'sam', label: 'Snapshot', vote: isQuarantined ? null : rawVote,
+        chip: `snap ${s.q || '?'} T${fin(s.trend) ? s.trend.toFixed(0) : '?'}${driftTag}${isQuarantined ? ' [stale]' : ''}`,
+        detail: `${s.label || 'SmartOptions snapshot'}: quality ${s.q || 'n/a'}${qSub ? ' (' + qSub + ')' : ''}, TrendScore ${fin(s.trend) ? s.trend : 'n/a'}, opp ${fin(s.opp) ? s.opp : 'n/a'}${driftTag}${fpeTag}; GREAT/GOOD AND trend >= 60 = +1, WEAK/AVOID = -1.${isQuarantined ? ' Quarantined from live vote (>30d old; toggle in Rules).' : ' Read-only, not recomputed; dated, may be stale.'}`, src: s.label || 'SmartOptions snapshot'});
     } else d.push({k: 'sam', label: 'Snapshot', vote: null, chip: 'snap n/a', detail: 'not in SmartOptions snapshot', src: 'SmartOptions snapshot'});
+    if (fin(r.res20d)) {
+      const aTh = (R && fin(R.alpha20dMin)) ? R.alpha20dMin : 3.0;
+      const aVote = r.res20d >= aTh ? 1 : r.res20d <= -aTh ? -1 : 0;
+      d.push({k: 'alpha20d', label: '20d Alpha (Resid)', vote: aVote, chip: `20d α ${r.res20d > 0 ? '+' : ''}${r.res20d.toFixed(1)}%`,
+        detail: `20-session stock-specific residual ${r.res20d > 0 ? '+' : ''}${r.res20d.toFixed(2)}% after stripping 5-factor OLS macro move; >= +${aTh}% = +1, <= -${aTh}% = -1`, src: 'SmartOptions Edge 252d OLS attribution'});
+    }
     return d;
   }
   function nameVerdict(drivers, R) {

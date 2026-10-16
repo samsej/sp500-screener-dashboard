@@ -344,7 +344,7 @@ function rowOf(t) { const c = core(); return c && (c.rows || []).find(r => r.t =
 async function scan(t) {
   t = String(t || '').toUpperCase(); if (resCache[t]) return resCache[t];
   const p = await getPx(t), r = rowOf(t);
-  const res = detect(p.bars, {th: loadTh(), nextEarnings: r && r.er || null, lastEarnings: r && r.er_prev || null});
+  const res = detect(p.bars, {th: loadTh(), nextEarnings: r && r.er || null, lastEarnings: r && (r.ler || r.er_prev) || null});
   const src = p.prov && p.prov.price ? `${p.prov.price.provider}; ${p.prov.price.field}; retrieved ${p.prov.price.retrieved_at}` : 'data/px bars';
   resCache[t] = Object.assign({ticker: t, name: r ? r.n : null, sector: r ? r.sec : null, sets: r ? r.sets : [], source: src, method: 'app/patterns.js detectors on stored daily OHLCV; rules + thresholds in each detection', label: SOURCE, err: p.err || null}, res, summary(res));
   return resCache[t];

@@ -39,11 +39,20 @@
     if (!MODELS.some(m => m.id === value.model)) return null;
     return {url: u.href, expires_at: value.expires_at, model: value.model};
   }
-  function activeDemo() { return validateDemoConfig(demoService && Object.assign({enabled: true}, demoService)); }
+  // Brief: shared assistant relay from data/config.json chat_proxy_url (https only, no key in the browser)
+  let proxyService = null;
+  function useProxy(p) {
+    let u = null;
+    try { u = p && p.url ? new URL(p.url) : null; } catch (e) { u = null; }
+    proxyService = u && u.protocol === 'https:' && !u.username && !u.password ? {url: u.href, model: p.model && MODELS.some(m => m.id === p.model) ? p.model : MODELS[0].id, proxy: true} : null;
+    return proxyService;
+  }
+  function activeDemo() { return proxyService || validateDemoConfig(demoService && Object.assign({enabled: true}, demoService)); }
   function isAllowedUrl(url, origin, demo) {
     let u;
     try { u = new URL(url, origin || 'http://same.origin.invalid/'); } catch (e) { return false; }
     if (u.origin === API_ORIGIN) return u.pathname === '/v1/messages';
+    if (proxyService && u.href === proxyService.url) return true;
     if (demo && validateDemoConfig(Object.assign({enabled: true}, demo)) && u.href === demo.url) return true;
     const own = origin ? new URL(origin).origin : 'http://same.origin.invalid';
     return u.origin === own;
@@ -150,13 +159,7 @@
           else { const n = figureValue(f); if (n) evidence.numbers.add(n.value); }
         }
       } else if (Array.isArray(v)) v.forEach(collect);
-      else if (v && typeof v === 'object') {
-        // Macro observations may store 29 with unit "thousands" while prose
-        // correctly says "29 thousand". Bind the explicit unit's base amount.
-        const u=String(v.unit || '').toLowerCase(), scale=/\bthousands?\b/.test(u)?1e3:/\bmillions?\b/.test(u)?1e6:/\bbillions?\b/.test(u)?1e9:1;
-        if(scale!==1){for(const k of ['value','prior','change_vs_prior'])if(typeof v[k]==='number' && Number.isFinite(v[k]))evidence.numbers.add(v[k]*scale);for(const p of v.history_tail || [])if(Array.isArray(p) && typeof p[1]==='number')evidence.numbers.add(p[1]*scale);}
-        for (const [k, x] of Object.entries(v)) if (!skip.has(k)) collect(x);
-      }
+      else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) if (!skip.has(k)) collect(x);
     }
     collect(value);
     for (const d of (cite.as_of || '').match(ISO_FIG_RE) || []) { evidence.dates.add(d); evidence.dates.add(d.slice(0, 10)); }
@@ -165,19 +168,12 @@
   function bindToolEvidence(name, out, registry) {
     if (!registry || !out || out.error || name === 'ui_capabilities') return;
     if (name === 'get_ticker') {
-      if(out.benchmark && out.cite_id){registry.bind(out.cite_id,out);return;}
       const groups = {
-        price_and_returns: ['price', 'price_date', 'chg_1d_pct', 'chg_5d_pct', 'chg_1m_pct', 'vol_ratio_20d', 'volume_window_sessions', 'range_52w'],
+        price_and_returns: ['price', 'price_date', 'chg_1d_pct', 'chg_5d_pct', 'chg_1m_pct', 'vol_ratio_20d', 'range_52w'],
         fundamentals_analyst_earnings_iv: ['pe_trailing', 'pe_forward', 'peg', 'earnings', 'analyst', 'beta_provider', 'market_cap', 'atm_iv'],
         sam_snapshot: ['sam_snapshot'], relations: ['relations', 'attribution_last_session'], delayed_quote: ['delayed_quote'],
       };
       for (const [group, fields] of Object.entries(groups)) if (out.cite_map && out.cite_map[group]) registry.bind(out.cite_map[group], fields.map(k => out[k]));
-    } else if(name==='screen' && out.cite_map){
-      const rows=out.rows || [],current=out.cite_map.current_price_fundamentals_earnings;
-      registry.bind(current,{matched:out.matched,shown:out.shown,filters:out.filters,excluded:out.excluded_by_filter,days_reference:out.days_reference,
-        rows:rows.map(r=>Object.fromEntries(Object.entries(r).filter(([k])=>!k.startsWith('sam_'))))});
-      if(out.cite_map.sam_snapshot)registry.bind(out.cite_map.sam_snapshot,{as_of:out.sam_snapshot_as_of,rows:rows.map(r=>Object.fromEntries(Object.entries(r).filter(([k])=>k.startsWith('sam_'))))});
-      for(const c of out.cite || [])if(c.id!==current && c.id!==out.cite_map.sam_snapshot)registry.bind(c.id,rows.map(r=>({coef:r.coef,t:r.t})));
     } else if (name === 'get_macro') {
       // Do not let one macro series supply a different series' cited figure.
       for (const row of out.observations || []) registry.bind(row.cite_id, [row, {series_count: out.series_count, as_of_session: out.as_of_session}]);
@@ -243,7 +239,7 @@
       symbol: t.symbol, name: t.name, sector: t.sector, industry: t.industry,
       sets: t.sets, set_meaning: m.meta.sets || null,
       price: t.price, price_date: t.price_date, chg_1d_pct: t.chg_1d_pct, chg_5d_pct: t.chg_5d_pct, chg_1m_pct: t.chg_1m_pct,
-      vol_ratio_20d: t.vol_ratio_20d, volume_window_sessions:20, range_52w: Object.assign({window_weeks:52},t.range_52w),
+      vol_ratio_20d: t.vol_ratio_20d, range_52w: Object.assign({window_weeks:52},t.range_52w),
       pe_trailing: t.pe_trailing, pe_forward: t.pe_forward, peg: t.peg,
       earnings: Object.assign({}, t.earnings, {days_until_today: earningsDays(t, ctx)}),
       analyst: t.analyst, beta_provider: t.beta_provider, market_cap: t.market_cap, atm_iv: t.atm_iv,
@@ -336,12 +332,9 @@
     });
     const cites = [ctx.cite({label: 'Screen over dashboard tickers: price, valuation, analyst, earnings, ATM IV', source: 'Yahoo Finance via yfinance',
       series: 'all tickers', as_of: m.asof_session, url: 'https://finance.yahoo.com/'})];
-    let samCite=null;
-    if (out.some(r=>r.sam_quality!=null) || f.min_sam_opp != null || f.sam_risk || f.sam_quality || sortKey.startsWith('sam')) {samCite=ctx.cite({label: 'SmartOptions snapshot 2026-07-25', source: "Sam's SmartOptions screener snapshot (read-only)", series: 'all tickers', as_of: '2026-07-25', url: null});cites.push(samCite);}
+    if (f.min_sam_opp != null || f.sam_risk || f.sam_quality || sortKey.startsWith('sam')) cites.push(ctx.cite({label: 'SmartOptions snapshot 2026-07-25', source: "Sam's SmartOptions screener snapshot (read-only)", series: 'all tickers', as_of: '2026-07-25', url: null}));
     if (fac) cites.push(citeRel(m, null, ctx));
     return {matched: total, shown: out.length, sort: (desc ? '-' : '+') + sortKey, filters: f, excluded_by_filter: excluded, notes,
-      exclusions_method:'Counts are sequential in filter application order, not overlapping. Their sum equals the initial universe count minus matched. Missing values are grouped with failed thresholds, not counted separately.',
-      sam_snapshot_as_of:samCite?'2026-07-25':null,cite_map:{current_price_fundamentals_earnings:cites[0].id,sam_snapshot:samCite?samCite.id:null},
       days_reference: 'days_to_earnings counted from ' + etToday(ctx.now) + ' (ET)', factor_units: fac ? m.units[fac] : undefined,
       rows: out, cite: cites};
   }
@@ -349,8 +342,7 @@
   function obsOut(o, histN) {
     const h = o.history || [];
     const chg = num(o.value) != null && num(o.prior) != null ? round(o.value - o.prior, 4) : null;
-    const windowMatch=String(o.label || '').match(/\b(\d+)[- ]session\b/i);
-    return {id: o.id, group: o.group, label: o.label, value: o.value, unit: o.unit, window_sessions:windowMatch?Number(windowMatch[1]):undefined, period: o.period, observation_date: o.date,
+    return {id: o.id, group: o.group, label: o.label, value: o.value, unit: o.unit, period: o.period, observation_date: o.date,
       prior: o.prior, change_vs_prior: chg, transform: o.transform, status: o.status, note: o.note,
       provider: o.provider, series: o.series, retrieved_at: o.retrieved_at, history_tail: histN ? h.slice(-histN) : undefined};
   }
@@ -364,7 +356,7 @@
       picked = all;
       const cites = picked.map(o => citeObs(o, ctx));
       const res = picked.map((o, i) => { const r = obsOut(o, 0);
-        return {id: r.id, group: r.group, label: r.label, value: r.value, unit: r.unit, window_sessions:r.window_sessions, period: r.period, prior: r.prior,
+        return {id: r.id, group: r.group, label: r.label, value: r.value, unit: r.unit, period: r.period, prior: r.prior,
           change_vs_prior: r.change_vs_prior, status: r.status, note: r.note || undefined, cite_id: cites[i].id}; });
       return {series_count: res.length, as_of_session: m.asof_session, note: 'change_vs_prior = value minus prior observation of the same transform; monthly/quarterly values are not new today unless observation period is the latest release', trends: m.trends, observations: res, cite: dedupe(cites)};
     }
@@ -481,10 +473,7 @@
     if (args.apply_to_dashboard) ui = callUi(ctx, 'set_scenario', [shocks]);
     return {shocks_used: used, units: m.units, method: m.methods.scenario || 'impact % = sum(coef x shock)', tickers_scored: res.length,
       tickers_skipped_no_coef: skipped.length, most_hurt: res.slice(0, n), most_helped: res.slice(-n).reverse(),
-      sector_view: sectors, caveat: 'historical association over ' + m.rel_window + ', not a forecast',
-      assumptions:['Linear, additive response using the stored coefficients held fixed.', 'Unspecified factor shocks are held at zero change.', 'The joint shocks are specified by the user; predictors need not be independent. OLS permits correlated predictors.'],
-      limitations:['No calibrated outcome probability or prediction interval is supplied.', 'No out-of-sample validation or causal identification is supplied.', 'Coefficient t-statistics use classic, non-robust standard errors; they do not establish scenario accuracy.'],
-      ui_result: ui || undefined, cite: cites};
+      sector_view: sectors, caveat: 'historical association over ' + m.rel_window + ', not a forecast', ui_result: ui || undefined, cite: cites};
   }
 
   // ---------------------------------------------------------------- UI action tools
@@ -619,7 +608,6 @@
       '11. The main company view is labeled Analyst in the dashboard (markets internally). To open Analyst for AAPL, call select with symbol AAPL. open_ticker_tab chooses Overview, Technicals or Strategies within that view; Analyst itself is not a ticker tab.',
       '12. Answer only the question asked. If a future price, consensus or missing field is unavailable, say not in the data without padding the answer with unrelated figures. Never infer a future catch-up merely because peers moved earlier.',
       '13. For a broad decision or strategy question, distill the measured market backdrop, company fundamentals, conditional scenarios, strategy alternatives and invalidating evidence. Use get_confidence when discussing confidence and explain its component math. Its score is evidence support, NOT odds of success; predictive confidence and a demonstrated trading edge require out-of-sample validation not supplied here. Ask briefly for missing ticker, horizon or risk constraints when those change the comparison. For a direct factual question, just answer it.',
-      '14. The implemented calculations are the source of analytical inference, not your intuition. Attribute each inference to its named model or rule (regime, macro trend, OLS/scenario, technical rule, strategy pricing/ranking, confidence components). Use tools and stated criteria for comparisons and screening. If the requested inference has no implemented or validated model, say not modeled. Do not replace missing models with an LLM-generated market narrative or claimed probability. Explain the supplied model assumptions; do not invent additional assumptions.',
     ].join('\n');
   }
 
@@ -639,8 +627,6 @@
   }
   function figuresIn(s) {
     const clean = s.replace(/\[\d+\]/g, ' ').replace(/S&P\s?500/gi, 'SP').replace(ISO_FIG_RE, 'DATE')
-      .replace(/\b(?:2|3|5|7|10|20|30)[- ]year\b/gi, 'MATURITY')
-      .replace(/\b(?:down|fell|dropped|declined)(?:\s+by)?\s+(\d+(?:\.\d+)?%)/gi, '-$1')
       .replace(/claude-[a-z]+-[\d-]+/gi, 'M').replace(/^\s*\d+[.)]\s+/, '');
     const out = [];
     const dates = s.match(ISO_FIG_RE) || [];
@@ -948,7 +934,7 @@
   return {
     version: '1', API_URL, MODELS, MAX_TOOL_ROUNDS, TOOL_SCHEMAS, SUGGESTED,
     adapt, loadData, isAllowedUrl, validateDemoConfig, safeFetch, CiteRegistry, newConversation, runTool, systemPrompt,
-    citationCheck, figuresIn, ask, renderMarkdown, renderSources, renderWarning, mount,
+    citationCheck, figuresIn, ask, renderMarkdown, renderSources, renderWarning, mount, useProxy,
     tools: DATA_TOOLS, uiTools: Object.keys(UI_TOOLS),
   };
 });

@@ -26,7 +26,9 @@ function compute(inp) {
   if (inp.patterns && inp.patterns.detections) for (const d of inp.patterns.detections) if (d.state === 'confirmed' && !d.lagging && (d.direction === 'bull' || d.direction === 'bear')) votes.push({name: 'Pattern: ' + d.pattern, value: d.plain, dir: d.direction === 'bull' ? 1 : -1, rule: d.rule + ' (' + d.source + ')', asof: inp.patterns.asof});
   if (inp.flow && (inp.flow.word === 'STRONG' || inp.flow.word === 'WEAK')) votes.push({name: 'Flow name verdict', value: inp.flow.word + ' (vote sum ' + inp.flow.sum + ' of ' + inp.flow.n + ')', dir: inp.flow.word === 'STRONG' ? 1 : -1, rule: 'Flow step 3 documented rule (app/flow.js)', asof: inp.asof});
   if (isNum(row.up)) votes.push({name: 'Fundamental: analyst mean target upside', value: r1(row.up) + '%', dir: row.up > 0 ? 1 : row.up < 0 ? -1 : 0, rule: 'positive upside = bullish vote (Yahoo analyst mean target vs price; not a consensus forecast we verified)', asof: inp.asof});
-  if (row.sam && SAM_Q[row.sam.q] != null && SAM_Q[row.sam.q] !== 0) votes.push({name: "Fundamental: Sam's quality tier", value: row.sam.q + ' (' + (row.sam.label || 'SmartOptions snapshot 2026-07-25') + ')', dir: SAM_Q[row.sam.q], rule: 'GREAT/GOOD = bullish vote, WEAK/AVOID = bearish; his tier, read-only', asof: row.sam.asof || null});
+  const samStaleQuarantine = Boolean(row.sam_drift || (row.sam && row.sam.asof && inp.asof && Math.abs(Date.parse(inp.asof) - Date.parse(row.sam.asof)) > 30 * 864e5)) && !inp.includeStaleSamVote;
+  if (row.sam && SAM_Q[row.sam.q] != null && SAM_Q[row.sam.q] !== 0 && !samStaleQuarantine) votes.push({name: "Fundamental: Sam's quality tier", value: row.sam.q + ' (' + (row.sam.label || 'SmartOptions snapshot 2026-07-25') + ')', dir: SAM_Q[row.sam.q], rule: 'GREAT/GOOD = bullish vote, WEAK/AVOID = bearish; his tier, read-only', asof: row.sam.asof || null});
+  if (isNum(row.res20d) && Math.abs(row.res20d) >= 3.0) votes.push({name: 'Macro-adjusted 20d idiosyncratic residual', value: (row.res20d > 0 ? '+' : '') + r1(row.res20d) + '%', dir: row.res20d > 0 ? 1 : -1, rule: '20d cumulative return minus 5-factor OLS explained move (>= +3% bullish, <= -3% bearish)', asof: inp.asof});
   const bull = votes.filter(v => v.dir > 0).length, bear = votes.filter(v => v.dir < 0).length, tot = bull + bear;
   const dir = bull > bear ? 'bullish' : bear > bull ? 'bearish' : 'neutral';
   const agreeRaw = tot ? Math.abs(bull - bear) / tot * 100 : 0, agree = tot >= 3 ? agreeRaw : agreeRaw * tot / 3;
@@ -62,10 +64,8 @@ function compute(inp) {
   comp.events = {score: clamp(ev), reasons: er, rule: 'start 100, subtract for scheduled events inside the 30-day horizon', summary: er.map(x => x.name + ' ' + x.value).join('; ')};
   let score = 0; for (const k in WEIGHTS) score += WEIGHTS[k] * clamp(comp[k].score);
   score = Math.round(score);
-  const sam = row.sam ? {opportunity: row.sam.opp, quality: row.sam.q, trend: row.sam.trend, risk: row.sam.risk, flags: row.sam.flags, label: row.sam.label || 'SmartOptions snapshot 2026-07-25'} : null;
-  const comps = Object.keys(WEIGHTS).map(k => ({key: k, label: NAMES[k], weight: WEIGHTS[k], score: Math.round(clamp(comp[k].score)),
-    score_meaning:k==='events'?'Higher score means fewer scheduled-event deductions. A LOW score means MORE event risk, not less.':'Higher score means more support from this component; not an outcome probability.',
-    summary: comp[k].summary, rule: comp[k].rule, reasons: comp[k].reasons}));
+  const sam = row.sam ? {opportunity: row.sam.opp, quality: row.sam.q, trend: row.sam.trend, risk: row.sam.risk, flags: row.sam.flags, drift_px: row.sam_drift ? row.sam_drift.px_pct : null, drift_pef: row.sam_drift ? row.sam_drift.pef_chg : null, label: row.sam.label || 'SmartOptions snapshot 2026-07-25'} : null;
+  const comps = Object.keys(WEIGHTS).map(k => ({key: k, label: NAMES[k], weight: WEIGHTS[k], score: Math.round(clamp(comp[k].score)), summary: comp[k].summary, rule: comp[k].rule, reasons: comp[k].reasons}));
   const weakest = comps.slice().sort((a, b) => a.score - b.score)[0];
   const headline = `${score}/100, ${dir} lean: ${comp.agreement.summary}; ${comp.data.summary}; ${comp.regime.summary}; ${comp.events.summary || 'no scheduled events'}. Weakest part: ${weakest.label.toLowerCase()} (${weakest.score}).`;
   return {ticker: inp.ticker, score, direction: dir, headline, label: LABEL, components: comps, sam, asof: inp.asof,
@@ -101,7 +101,7 @@ function boxHtml(r, open) {
   return `<div class="cf-top"><b class="cf-n">${r.score}</b><span class="cf-d cf-${r.direction}">${esc(r.direction)} lean</span><span class="cf-bar">${seg}</span><button data-cf="why">${open ? 'Hide why' : 'Why?'}</button></div>
     <div class="cf-lab">${esc(r.label)}</div>
     ${open ? `<div class="cf-why"><div class="cf-h">${esc(r.headline)}</div>${r.components.map(c => `<div class="cf-c"><b>${esc(c.label)}</b> ${c.score}/100 &middot; weight ${c.weight} <span class="cf-rule">${esc(c.rule)}</span><ul>${c.reasons.map(x => `<li>${esc(x.name)}: ${esc(x.value)}${x.asof ? ' <small>as of ' + esc(x.asof) + '</small>' : ''}<br><small>${esc(x.rule)}</small></li>`).join('')}</ul></div>`).join('')}
-    ${r.sam ? `<div class="cf-sam">Sam's own scores, shown beside (not merged): Opportunity ${esc(r.sam.opportunity)}, Quality ${esc(r.sam.quality)}, Trend ${esc(r.sam.trend)}, Risk ${esc(r.sam.risk)}, Flags ${esc(r.sam.flags)} &middot; ${esc(r.sam.label)}</div>` : '<div class="cf-sam">Not in Sam\'s snapshot universe.</div>'}</div>` : ''}`;
+    ${r.sam ? `<div class="cf-sam">Sam's own scores, shown beside (not merged into live vote when >30d old): Opportunity ${esc(r.sam.opportunity)}, Quality ${esc(r.sam.quality)}, Trend ${esc(r.sam.trend)}, Risk ${esc(r.sam.risk)}, Flags ${esc(r.sam.flags)}${r.sam.drift_px != null ? ` &middot; <b>Drift since 07-25: ${r.sam.drift_px > 0 ? '+' : ''}${r.sam.drift_px}% px${r.sam.drift_pef != null ? ', ' + (r.sam.drift_pef > 0 ? '+' : '') + r.sam.drift_pef + 'x fP/E' : ''}</b>` : ''} &middot; ${esc(r.sam.label)}</div>` : '<div class="cf-sam">Not in Sam\'s snapshot universe.</div>'}</div>` : ''}`;
 }
 async function renderBox(el, t, open) { try { const r = await score(t); if (el.dataset.cft !== t) return; el.innerHTML = boxHtml(r, open); } catch (e) { el.innerHTML = `<div class="cf-lab">Confidence unavailable: ${esc(e.message || e)}</div>`; } }
 function hookDetail() { // Analyst detail pane: one-click "why" under the ticker header (observer; no edit to app.js)
