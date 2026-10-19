@@ -146,6 +146,10 @@
   function observationText(p,r){return 'Price source: '+p?.source+' · observed '+(p?.ts?humanET(p.ts):r?.pxd||'unavailable')+'. Quotes and completed-session analysis are separate clocks.';}
   function mountToday(host,a) {
     const s=data();let quoteTask=null,rowObserver=null,page=0,expanded=false,scope=host.dataset.scope||(active(s.book.get().book).length?'positions':'saved');
+    function notifyReview(res) {
+      // Local-only presentation seam: ranking and private reads remain in this owner.
+      a.onReview?.({scope,text:res.items.slice(0,2).map(x=>x.t+': '+(x.why[0]?.startsWith('Latest-session ')?pct(x.p?.change)+' · '+(x.p?.session||'session unavailable'):x.why[0])).join(' · ')});
+    }
     function draw() {
       if(!host.isConnected)return;
       const reviewOpen=host.querySelector('.personal-review')?.open||false;
@@ -153,6 +157,7 @@
       const book=s.book.get().book||{},priv=s.private.get(),names=scope==='positions'?active(book):a.watch.get(),ev=a.events(),days=a.days();
       const res=queue({names,scope,book,rows:a.core.rows,get:a.live.get,current:(r,q)=>r?a.live.currentRow(r,q):null,session:a.brief.asof_session,notes:priv.notes,prior:priv.checkpoints?.[scope],events:ev.items});
       const summary=res.summary,sector={};
+      notifyReview(res);
       names.forEach(t=>{const r=a.core.rows.find(r=>r.t===t),v=scope==='positions'?summary.items.find(p=>p.t===t)?.value:1;if(finite(v))sector[r?.sec||'Unknown']=(sector[r?.sec||'Unknown']||0)+v;});
       const start=page*24,shown=expanded?res.items.slice(start,start+24):res.items.slice(0,3);
       const relevant=ev.items.filter(e=>e.kind==='macro'||names.includes(e.t));
@@ -202,6 +207,7 @@
       if(!host.isConnected)return;
       const book=s.book.get().book||{},priv=s.private.get(),names=scope==='positions'?active(book):a.watch.get();
       const res=queue({names,scope,book,rows:a.core.rows,get:a.live.get,current:(r,q)=>r?a.live.currentRow(r,q):null,session:a.brief.asof_session,notes:priv.notes,prior:priv.checkpoints?.[scope],events:a.events().items});
+      notifyReview(res);
       host.querySelectorAll('[data-personal-t]').forEach(el=>{const x=res.items.find(x=>x.t===el.dataset.personalT);if(!x)return;el.querySelector('[data-personal-change]').textContent=changeText(x.p);el.querySelector('[data-personal-value]').textContent=valueText(x.p,res.summary,scope);el.querySelector('[data-personal-why]').textContent=x.why.join(' · ');el.querySelector('[data-personal-observation]').textContent=observationText(x.p,x.r);const att=attribution(x.r),n=el.querySelector('[data-personal-attribution]');if(att&&n)n.textContent=attributionText(att,x.p);});
       const clock=host.querySelector('.review-clock>p');if(clock)clock.textContent=res.comparison.text;
       const differences=host.querySelector('[data-review-changes]');if(differences){const html=res.comparison.items.map(x=>`<li>${esc(x.t)}: ${x.why.map(esc).join('; ')}</li>`).join('');if(differences.innerHTML!==html)differences.innerHTML=html;}
@@ -231,6 +237,9 @@
       $('#position-preview').innerHTML=`<h2>Preview · ${result.rowsRead} input rows</h2><p>${esc(result.reason)} ${result.partial?'Partial selection; excluded rows remain unchanged.':''}</p>${result.costChoiceRequired?'<p class="note">Choose cost meaning before Apply. Costs are currently withheld.</p>':''}<ul>${(result.accounting||[]).map(x=>`<li>Row ${x.row} · ${esc(x.t)}: ${esc(x.status)}</li>`).join('')}</ul><p>${result.duplicateLots||0} duplicate lots consolidated.</p><ul>${Object.entries(result.book||{}).map(([t,b])=>`<li>${esc(t)}: shares ${esc(b.qty??'Unknown')} · cost/share ${money(b.cost)}</li>`).join('')}</ul>
         ${conflicts.length?`<p>Existing entries conflict. Unselected replacements stay unchanged:</p>${conflicts.map(t=>`<label><input type="checkbox" data-replace-position="${esc(t)}"> Replace ${esc(t)} · old shares ${esc(book[t].qty??'unknown')}, cost ${esc(costDescription(book[t]))} → new shares ${entries[t].qty}, cost ${money(entries[t].cost)}</label>`).join('')}`:''}
         <button id="position-apply" ${!Object.keys(entries).length||result.costChoiceRequired?'disabled':''}>Apply merge</button><button id="position-cancel">Cancel</button>${result.matched?.length?'<button id="position-names">Save names only</button>':''}`;
+      if(result.metrics||result.series?.length){$('#position-preview').insertAdjacentHTML('beforeend',`<p class="small">${result.metrics?`Metric table: ${esc(result.metrics.columns.join(', '))} for ${Object.keys(result.metrics.rows).length} tickers. It appears as optional Markets list columns.`:''}${result.series?.length?` Dated series: ${esc(result.series.map(x=>x.label+' ('+x.points.length+' points)').join(', '))}. They appear in Compare.`:''} Values stay on this device and are labelled as yours, not verified.</p><button id="position-save-extra">Save ${result.metrics?'metric columns':''}${result.metrics&&result.series?.length?' and ':''}${result.series?.length?'series':''}</button>`);
+        $('#position-save-extra').onclick=()=>{const before=s.book.get();if(JSON.stringify(before)!==JSON.stringify(expected)){status('Local data changed. Reload and preview again.');return;}
+          const next={...before,...(result.metrics?{metrics:result.metrics}:{}),...(result.series?.length?{series:result.series.slice(0,4)}:{})};const saved=s.book.put(next);status(saved.ok?'Imported data saved and verified on this device.':s.book.status().warning);if(saved.ok){expected=s.book.get();root.dispatchEvent(new Event('so:investor'));}};}
       $('#position-cancel').onclick=()=>{preview=null;$('#position-preview').replaceChildren();status('Cancelled; local data unchanged.');};
       $('#position-names')?.addEventListener('click',()=>{a.watch.add(result.matched);status(a.watch.status().ok?'Names saved; ownership not assumed.':'Names retained in this tab; device save unavailable.');});
       $('#position-apply').onclick=()=>{
