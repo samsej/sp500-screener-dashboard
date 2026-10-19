@@ -1,7 +1,7 @@
 {
-  "release_id": "brief-client-20261019-r30-connected-analysis",
-  "built_at": "2026-10-19T08:41:44.574314+00:00",
-  "source_base": "8f8443917cbdf1615fd7543d4e67b4f3e7632295",
+  "release_id": "brief-client-20261019-r31-connected-analysis",
+  "built_at": "2026-10-19T08:44:54.660493+00:00",
+  "source_base": "211fdb1db975abd6f127790f35a46cab3dd0ba6b",
   "ui_assets": {
     "about.js": {
       "sha256": "8f0259de5c6d0ba9eba97125a8880f4a977d2ae70ef8a3508f2d23aac1436447",
@@ -32,7 +32,7 @@
       "bytes": 10290
     },
     "chat-popup.js": {
-      "sha256": "e0f3d9487f48a953e399095d7016860ba70f88d8202883d03fdd0752f855891b",
+      "sha256": "2f02f1b2809725aebc190257785228a5b66bf30baef02c6f22645e1bf47205cb",
       "bytes": 25639
     },
     "chat/actions.js": {
@@ -176,7 +176,7 @@
       "bytes": 11704
     },
     "index.html": {
-      "sha256": "355819e3b13f33613c875dfad3072b7b93c623b28511c9a82005d7b700072118",
+      "sha256": "b407d263a440d53760e4e0f14ffeae969d8e86c79c856b97704f089ab928da99",
       "bytes": 2245
     },
     "instruments.js": {
@@ -220,12 +220,12 @@
       "bytes": 35823
     },
     "main.js": {
-      "sha256": "1a1aa88c1af12112cf3ce187c79040f07bdd31a8fa7d9ba2e65d32cb7d6057e5",
+      "sha256": "c5baae5aab43cf875c1ce3aec8ca16376626edf81baa51892975b6247e8efbe2",
       "bytes": 301745
     },
     "markets.js": {
-      "sha256": "5741f7e5b8decb960cade98dc7667904dcbe28a6de0a39903a8a40efff4e68cb",
-      "bytes": 64040
+      "sha256": "3b81ed918a517db2c98da956cdf36fe57f00a4b60a5d6238b299333cf1da4a9a",
+      "bytes": 63818
     },
     "money-flow.css": {
       "sha256": "ddef742bb34f0216e5ecfbdcb9b3116ddbdc99abe8cfe13072fd7ad503c5e737",
@@ -240,7 +240,7 @@
       "bytes": 8321
     },
     "my-dashboard.js": {
-      "sha256": "82971c57cad853e23ca6ba0454ae019f85f802992d88bc78abcd0db76e3dea47",
+      "sha256": "1620b76f981e587ddac8622c10100dc06b0f70b77febee92ab040e43d0999aea",
       "bytes": 42646
     },
     "news.js": {
@@ -264,8 +264,8 @@
       "bytes": 42958
     },
     "release.json": {
-      "sha256": "1821f2e4100e9a53d3db63adbc8b4917b9fbe022d6dd279da6d772581a16f802",
-      "bytes": 2783
+      "sha256": "690fe14143597a9d5bde0fade8afc7265f28f04288f676ac44a43ccf5dbf10a9",
+      "bytes": 3079
     },
     "shocks.css": {
       "sha256": "95f20f08ee93c25ca625520dd8e881ca8b1c074955f25f7d67f96f41890aa778",

@@ -424,10 +424,9 @@
     }
     el.innerHTML = '<div class="mk"><div class="mk-main"></div><aside class="mk-insp" hidden aria-label="Instrument inspector"></aside></div>';
     el.addEventListener('click', onClick); el.addEventListener('change', onChange); el.addEventListener('input', onInput); doc.addEventListener('keydown', onKey, true);
-    draw();
+    if(s.fx)adoptView({...s});else draw();
     if (s.u !== 'sp') loadEtfs().then(x => { etfs = x; if (!destroyed) draw(); });
     const ensureEtfs = () => { if (!Object.keys(etfs).length) loadEtfs().then(x => { etfs = x; if (!destroyed) draw(); }); };
-    if(s.fx){readyAnalysis().then(M=>{const a=M.settings('sensitivity',{factor:s.fx,shock:s.shock});scenarioValid=true;s.fx=a.factor;s.shock=a.shock;if(!destroyed)draw();}).catch(e=>{s.colour='observed';scenarioError=e.message;if(!destroyed)draw();});}
     const origSet = set; set = (patch, o) => { origSet(patch, o); if (patch.u && patch.u !== 'sp') ensureEtfs(); };
     // Quotes patch the inspector price only; tiles show completed-session returns and are not reordered.
     unsub = Live && Live.subscribe ? Live.subscribe(() => { if (!suspended && !destroyed && s.sel) Live.paint(el.querySelector('.mk-insp'), null); }) : null;
