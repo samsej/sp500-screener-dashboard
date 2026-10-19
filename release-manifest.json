@@ -1,7 +1,7 @@
 {
-  "release_id": "brief-client-20261019-r31-connected-analysis",
-  "built_at": "2026-10-19T08:44:54.660493+00:00",
-  "source_base": "211fdb1db975abd6f127790f35a46cab3dd0ba6b",
+  "release_id": "brief-client-20261019-r32-connected-analysis",
+  "built_at": "2026-10-19T08:54:06.200130+00:00",
+  "source_base": "de5f491d363ec0e3ee2ac37c3991c6199a2d8c44",
   "ui_assets": {
     "about.js": {
       "sha256": "8f0259de5c6d0ba9eba97125a8880f4a977d2ae70ef8a3508f2d23aac1436447",
@@ -264,8 +264,8 @@
       "bytes": 42958
     },
     "release.json": {
-      "sha256": "690fe14143597a9d5bde0fade8afc7265f28f04288f676ac44a43ccf5dbf10a9",
-      "bytes": 3079
+      "sha256": "3c2a98bbd9ed3dac420c958eb0997679025b879c03fa3fe6ee2e2393908fb2e5",
+      "bytes": 3654
     },
     "shocks.css": {
       "sha256": "95f20f08ee93c25ca625520dd8e881ca8b1c074955f25f7d67f96f41890aa778",

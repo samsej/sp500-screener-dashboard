@@ -1,9 +1,9 @@
 {
   "schema": "smartoptions.release.v1",
-  "release_id": "brief-client-20261019-r31-connected-analysis",
+  "release_id": "brief-client-20261019-r32-connected-analysis",
   "product": "Market Brief",
-  "built_at": "2026-10-19T08:44:54.660493+00:00",
-  "source_commit": "211fdb1db975abd6f127790f35a46cab3dd0ba6b",
+  "built_at": "2026-10-19T08:54:06.200130+00:00",
+  "source_commit": "de5f491d363ec0e3ee2ac37c3991c6199a2d8c44",
   "data_session": "2026-10-16",
   "tickers": 509,
   "current_constituents": 503,
@@ -12,7 +12,7 @@
   "chat": "Opaque lazy popup; typed saved stock/ETF rooms and optional dated investigation focus. BYOK transport tested with synthetic keys; no real user keys read.",
   "shared_rephrasing": "optional; Cloudflare Worker with free-tier providers, each answer checked against dashboard facts",
   "price_feed": "Yahoo Finance stream for up to 100 prioritized active names; one connection. Finnhub shared within-budget 120-second fallback, then the timestamped shared snapshot. Full-index breadth uses one adequately covered dated session, not an unqualified all-index tick claim.",
-  "verification": "Frontend bytes identical to actual r29 accepted connected analysis:25hosted four-view Today/search/source checks and7actual hosted scenario/basket/legend/Back/opaque-chat checks;79UI/70runtime served gate and1029member coherent bundle/mirror proof. Narrow backend reporting relevance correction excludes publisher lifestyle section in Python and existing Worker;14JS/45Python situation/audit/synthesis checks plus actual changed Worker3checks/source times/global cache/quote pass. No provider/budget/origin/configuration/binding changes. Exact corrected canonical news production, client mirror and final hosted runtime/data gates pending. BYOK remains synthetic-key transport proof, no real user keys read. Direct CUA caught a saved-scenario bootstrap semantic flash. Fixed observed labels until exact validated assumption is ready;20rendered connected controls/bootstrap/math/private/mobile checks pass with deliberately delayed analysis script. No further backend delta or repeated producer required.",
+  "verification": "Frontend bytes identical to actual r29 accepted connected analysis:25hosted four-view Today/search/source checks and7actual hosted scenario/basket/legend/Back/opaque-chat checks;79UI/70runtime served gate and1029member coherent bundle/mirror proof. Narrow backend reporting relevance correction excludes publisher lifestyle section in Python and existing Worker;14JS/45Python situation/audit/synthesis checks plus actual changed Worker3checks/source times/global cache/quote pass. No provider/budget/origin/configuration/binding changes. Exact corrected canonical news production, client mirror and final hosted runtime/data gates pending. BYOK remains synthetic-key transport proof, no real user keys read. Direct CUA caught a saved-scenario bootstrap semantic flash. Fixed observed labels until exact validated assumption is ready;20rendered connected controls/bootstrap/math/private/mobile checks pass with deliberately delayed analysis script. No further backend delta or repeated producer required. Final cadence review found both daily jobs can race; the existing client news mirror now optionally adopts a strictly newer coherent full bundle using the same download and full mirror validation, preserving independent quotes.21targeted tests and actual public1029-member bundle replay through the production catch-up path passed with deliberately aged local pair clocks; zero provider calls and exact quote preservation. No new cron, source or Worker changes. Existing canonical producer acquisition path unchanged; actual corrected client news job/receipt still required.",
   "screener_scores": "dated 2026-07-25 snapshot; separate from refreshed prices and fundamentals",
   "methods": "docs/BRIEF-METHODS.md",
   "notes": [
